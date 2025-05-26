@@ -113,3 +113,5 @@ Vue.jsを選定候補としている理由は、Reactに比べて学習コスト
 そのため、まずは素のJavaScriptで必要最低限の機能を実装し、開発の進行状況や習得状況を見ながらVue.jsを導入するかどうかを判断する予定です。
 また、本リリース時にはVue.jsやReactなどの導入を改めて検討し、より保守性や拡張性の高い実装を目指していきます。
 
+## 画面遷移図リンク
+https://www.figma.com/design/RCnddxacOtOmd1mu6iQztF/Mysic?node-id=0-1&t=TML2o9qr7F9JNgAj-1
