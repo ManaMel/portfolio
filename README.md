@@ -115,3 +115,6 @@ Vue.jsを選定候補としている理由は、Reactに比べて学習コスト
 
 ## 画面遷移図リンク
 https://www.figma.com/design/RCnddxacOtOmd1mu6iQztF/Mysic?node-id=0-1&t=TML2o9qr7F9JNgAj-1
+
+## ER図リンク
+https://gyazo.com/79abb92c85e9f53863bd6b80292b63cf
