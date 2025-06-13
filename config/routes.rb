@@ -7,11 +7,9 @@ Rails.application.routes.draw do
     root to: 'home#index', as: :authenticated_root
   end
 
-  devise_for :users, controllers: {
+  devise_for :users, only: [:sessions, :registrations], controllers: {
     registrations: "users/registrations",
-    sessions: "users/sessions",
-    passwords: "users/passwords",
-    confirmations: "users/confirmations"
+    sessions: "users/sessions"
   }
   get "home/index"
 

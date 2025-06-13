@@ -6,7 +6,7 @@
     <div class="card text-center pt-5 mx-auto" style="width: 23rem;">
       <h1>ログイン画面</h1>
       <div class="card-body">
-        <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+        <%= form_with model: @user, url: session_path(resource_name), local: true do |f| %>
           <div class="mb-3 mt-4">
             <%= f.email_field :email, class: "form-control", placeholder: "Eメール" %>
           </div>
