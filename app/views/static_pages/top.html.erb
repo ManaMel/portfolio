@@ -1,5 +1,6 @@
 <div class="relative min-h-[45vh] bg-[url('/assets/zhino-shangno-yin-funokurosuaffu.jpg')] bg-center">
-    <div class="absolute inset-0 bg-black/30"><button class="absolute top-4 right-4 btn btn-success">ログイン</button>
+    <div class="absolute inset-0 bg-black/30"><button class="absolute top-4 right-4 btn btn-success">
+    <%= link_to "ログイン", new_user_session_path %></button>
       <p class="w-48 bg-white text-2xl text-center">自分だけの音楽、世界に一つのMysic。</p>
     </div>
 </div>
@@ -10,5 +11,7 @@
   <h2>簡易編集 : 録音を聴き直して調整・保存</h2>
   <h2>仲間とつながる : 音楽仲間を見つけて交流</h2>
   <h2>投稿サポート : YouTubeへの投稿をカンタンに</h2><br>
-<button class="absolute center-1 btn btn-success">新規登録</button>
+<button class="absolute center-1 btn btn-success">
+<%= link_to "新規登録", new_user_registration_path %>
+</button>
 </div>

@@ -10,6 +10,15 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # end
 
   # POST /resource
+  def create
+    super do |resource|
+      if resource.errors.any? # もしエラーがあれば
+        flash[:alert] = "新規登録に失敗しました" # カスタムメッセージを設定
+      else
+        flash[:notice]
+      end
+    end
+  end
   # def create
    #  @user = User.new(configure_sign_up_params)
     # if @user.save
