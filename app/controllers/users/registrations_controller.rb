@@ -20,14 +20,14 @@ class Users::RegistrationsController < Devise::RegistrationsController
     end
   end
   # def create
-   #  @user = User.new(configure_sign_up_params)
-    # if @user.save
-      # redirect_to root_path
-    # else
-      # render :new, status: :unprocessable_entity
-    # end  
+  #  @user = User.new(configure_sign_up_params)
+  # if @user.save
+  # redirect_to root_path
+  # else
+  # render :new, status: :unprocessable_entity
   # end
-    
+  # end
+
   # GET /resource/edit
   # def edit
   #   super
