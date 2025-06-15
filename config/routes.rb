@@ -1,13 +1,13 @@
 Rails.application.routes.draw do
   unauthenticated do
-    root to: 'static_pages#top'
+    root to: "static_pages#top"
   end
 
   authenticated :user do
-    root to: 'home#index', as: :authenticated_root
+    root to: "home#index", as: :authenticated_root
   end
 
-  devise_for :users, only: [:sessions, :registrations], controllers: {
+  devise_for :users, only: [ :sessions, :registrations ], controllers: {
     registrations: "users/registrations",
     sessions: "users/sessions"
   }
