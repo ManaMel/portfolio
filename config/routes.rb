@@ -1,6 +1,18 @@
 Rails.application.routes.draw do
-  get "static_pages/top"
+  unauthenticated do
+    root to: "static_pages#top"
+  end
+
+  authenticated :user do
+    root to: "home#index", as: :authenticated_root
+  end
+
+  devise_for :users, only: [ :sessions, :registrations ], controllers: {
+    registrations: "users/registrations",
+    sessions: "users/sessions"
+  }
   get "home/index"
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
@@ -12,5 +24,4 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   # Defines the root path route ("/")
-  root "static_pages#top"
 end
