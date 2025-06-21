@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get "users/index"
   unauthenticated do
     root to: "static_pages#top"
   end
@@ -12,6 +13,8 @@ Rails.application.routes.draw do
     sessions: "users/sessions"
   }
   get "home/index"
+
+  resources :users, only: [:index]
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
