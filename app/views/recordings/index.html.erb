@@ -1,0 +1,18 @@
+<%= render 'layouts/header' %>
+<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
+<div class="space-y-4 text-green-900">
+<h1>♪ 歌声や演奏を録音 ♪</h1>
+  <button type="button" id="buttonRecord" class="bg-green-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">録音開始</button>
+  <button type="button" id="buttonStop" class="bg-red-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>録音停止</button>
+
+  <audio controls id="player"></audio>
+  <br>
+  <br>
+  <p>♪ 伴奏音源を選ぶ ♪</p>
+  <button class="btn btn-wide btn-outline btn-warning">♪ 伴奏再生する</button>
+  <br>
+  <br>
+  
+</div>
+
+  <%= javascript_include_tag "recording", "data-turbo-track": "reload", type: "module" %>
