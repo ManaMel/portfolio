@@ -37,7 +37,7 @@
        };
 
        mediaRecorder.onstop = (e) => {
-         const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
+         const blob = new Blob(chunks, { type: "audio/mp4; codecs=opus" });
          chunks = [];
          const audioURL = window.URL.createObjectURL(blob);
          audio.src = audioURL;
