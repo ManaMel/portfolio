@@ -9,7 +9,7 @@
   <br>
   <br>
   <p>♪ 伴奏音源を選ぶ ♪</p>
-  <button class="btn btn-wide btn-outline btn-warning">♪ 伴奏再生する</button>
+  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏再生する", accompaniments_path %></button>
   <br>
   <br>
   <%= javascript_include_tag "recording", "data-turbo-track": "reload", type: "module" %>

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   authenticated :user do
     root to: "home#index", as: :authenticated_root
     resources :recordings, only: [ :index ]
+    resources :accompaniments, only: [ :index ]
   end
 
   devise_for :users, only: [ :sessions, :registrations ], controllers: {
