@@ -1,51 +1,47 @@
-'use strict';
- const record = document.querySelector("#buttonRecord");
- const stop = document.querySelector("#buttonStop");
- const audio = document.querySelector("#player");
+document.addEventListener('turbo:load', () => {
+  const record = document.querySelector("#buttonRecord");
+  const stop = document.querySelector("#buttonStop");
+  const audio = document.querySelector("#player");
 
- if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-   console.log("getUserMedia supported.");
-   navigator.mediaDevices
-     .getUserMedia(
-       {
-         audio: true,
-       }
-     )
-     .then((stream) => {
-       console.log('getUserMediaはサポートされています');
-       const mediaRecorder = new MediaRecorder(stream);
-       let chunks = [];
+  if (!record || !stop || !audio) {
+    console.log("録音用要素が存在しないため、スクリプトをスキップします。");
+    return;
+  }
 
-       record.onclick = () => {
-         mediaRecorder.start();
-         console.log(mediaRecorder.state);
-         console.log("recorder started");
-         record.setAttribute('disabled', '');
-         stop.removeAttribute('disabled');
-       };
+  let mediaRecorder;
+  let chunks = [];
 
-       mediaRecorder.ondataavailable = (e) => {
-         chunks.push(e.data);
-       };
+  record.onclick = () => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        mediaRecorder = new MediaRecorder(stream);
+        chunks = [];
 
-       stop.onclick = () => {
-         mediaRecorder.stop();
-         console.log(mediaRecorder.state);
-         console.log("recorder stopped");
-         record.removeAttribute('disabled');
-         stop.setAttribute('disabled', '');
-       };
+        mediaRecorder.ondataavailable = (e) => {
+          chunks.push(e.data);
+        };
 
-       mediaRecorder.onstop = (e) => {
-         const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
-         chunks = [];
-         const audioURL = window.URL.createObjectURL(blob);
-         audio.src = audioURL;
-       };
-    })
-     .catch((err) => {
-       console.error(`The following getUserMedia error occurred: ${err}`);
-     });
- } else {
-   console.log("getUserMedia not supported on your browser!");
- }
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
+          const audioURL = URL.createObjectURL(blob);
+          audio.src = audioURL;
+        };
+
+        mediaRecorder.start();
+        console.log("録音開始");
+
+        record.disabled = true;
+        stop.disabled = false;
+
+        stop.onclick = () => {
+          mediaRecorder.stop();
+          console.log("録音停止");
+          record.disabled = false;
+          stop.disabled = true;
+        };
+      })
+      .catch((err) => {
+        console.error("マイク取得エラー:", err);
+      });
+  };
+});
