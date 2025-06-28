@@ -1,0 +1,8 @@
+<div class="new-contents">
+  <div class="new-contents__content">
+    <%= form_with model: @video, local: true do |f| %>
+      <%= f.text_field :video_url, placeholder: 'youtube_url' %>
+      <%= f.submit '投稿する' %>
+    <% end %>
+  </div>
+</div>
