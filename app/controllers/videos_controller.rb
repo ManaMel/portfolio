@@ -21,7 +21,7 @@ class VideosController < ApplicationController
   def search
     keyword = params[:keyword]
     @results = YoutubeSearchServise.new(keyword).search
-    @video = Video.new 
+    @video = Video.new
     render :index
   end
 
