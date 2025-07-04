@@ -1,5 +1,5 @@
 class RecordingsController < ApplicationController
   def index
-    @videos = Video.all
+    @video = current_user.videos.last
   end
 end
