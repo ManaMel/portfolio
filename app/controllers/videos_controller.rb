@@ -21,6 +21,12 @@ class VideosController < ApplicationController
     redirect_to recordings_path, success: "伴奏動画を削除しました", status: :see_other
   end
 
+  def search
+    keyword = params[:keyword]
+    @results = YoutubeSearchServise.new(keyword).search
+    render :index
+  end
+
   private
   def video_params
     params.require(:video).permit(:video_url)

@@ -1,1 +1,35 @@
-a
+<h1 class="text-2xl mb-4 text-center">曲を検索！</h1>
+
+<!-- 検索フォーム -->
+<div class="flex justify-center">
+  <%= form_with url: search_videos_path, method: :get, local: true do |f| %>
+    <div class="flex items-center">
+      <%= f.text_field :keyword, placeholder: "曲名やアーティスト名を入力" %>
+      <%= f.submit "検索" %>
+    </div>
+  <% end %>
+</div>
+
+<!-- 検索結果 -->
+<% if @results.present? %>
+  <div>
+    <h3 class="text-xl mt-6">検索結果</h3>
+    <ul>
+      <% @results.each do |result| %>
+        <li class="flex space-x-4">
+          <a href="<%= result[:youtube_url] %>" target="_blank" rel="noopener noreferrer">
+            <img src="https://img.youtube.com/vi/<%= find_youtube_id(result[:youtube_url]) %>/0.jpg" alt="<%= result[:title] %> Thumbnail">
+          </a>
+          <div class="flex-grow flex flex-col w-0">
+            <div class="truncate text-lg flex-grow w-full">
+              <%= result[:title] %>
+            </div>
+            <div class="text-sm text-gray-600">
+              <%= result[:channel] %>
+            </div>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
