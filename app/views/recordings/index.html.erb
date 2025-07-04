@@ -14,7 +14,7 @@
   <br>
 </div>
 <div class="contents__content">
-  <% if @video.video_url.present? %>
+  <% if defined?(@video) && @video&.video_url.present? %>
     <iframe
       width="560"
       height="315"
