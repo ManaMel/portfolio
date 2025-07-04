@@ -8,27 +8,23 @@
   <audio controls id="player"></audio>
   <br>
   <br>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", new_video_path %></button>
+  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
   <p>♪ ↓ここにYouTubeの音源動画が出てきます。↓ ♪</p>
   <br>
   <br>
 </div>
-  <br>
-  <br>
 <div class="contents__content">
-  <% @videos.each do |video| %>
-    <% if video.video_url.present? %>
-      <iframe
-        width="560"
-        height="315"
-        src="https://www.youtube.com/embed/<%= find_youtube_id(video.video_url) %>"
-        frameborder="0"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-      </iframe>
-      <%= link_to video_path(video), data: { turbo_method: :delete } do %>
-        <%= render "shared/icon_buttons/delete_button" %>
-      <% end %>
+  <% if @video.video_url.present? %>
+    <iframe
+      width="560"
+      height="315"
+      src="https://www.youtube.com/embed/<%= find_youtube_id(@video.video_url) %>"
+      frameborder="0"
+      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+    <%= link_to video_path(@video), data: { turbo_method: :delete } do %>
+      <%= render "shared/icon_buttons/delete_button" %>
     <% end %>
   <% end %>
 </div>

@@ -1,6 +1,6 @@
+<%= render 'layouts/header' %>
 <h1 class="text-2xl mb-4 text-center">曲を検索！</h1>
 
-<!-- 検索フォーム -->
 <div class="flex justify-center">
   <%= form_with url: search_videos_path, method: :get, local: true do |f| %>
     <div class="flex items-center">
@@ -10,7 +10,6 @@
   <% end %>
 </div>
 
-<!-- 検索結果 -->
 <% if @results.present? %>
   <div>
     <h3 class="text-xl mt-6">検索結果</h3>
@@ -27,6 +26,12 @@
             <div class="text-sm text-gray-600">
               <%= result[:channel] %>
             </div>
+            <%= form_with model: @video, url: videos_path, method: :post, local: true, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :video_url, value: result[:youtube_url] %>
+              <%= f.hidden_field :title, value: result[:title] %>
+              <%= f.hidden_field :channel, value: result[:channel] %>
+              <%= f.submit "この動画を選ぶ" %>
+            <% end %>
           </div>
         </li>
       <% end %>
