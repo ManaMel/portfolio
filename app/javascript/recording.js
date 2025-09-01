@@ -1,47 +1,105 @@
-document.addEventListener('turbo:load', () => {
-  const record = document.querySelector("#buttonRecord");
-  const stop = document.querySelector("#buttonStop");
-  const audio = document.querySelector("#player");
+async function recording () {
+  try {
+    const buttonStart = document.querySelector('#buttonStart')
+    const buttonStop = document.querySelector('#buttonStop')
+    const audio = document.querySelector('#player')
 
-  if (!record || !stop || !audio) {
-    console.log("録音用要素が存在しないため、スクリプトをスキップします。");
-    return;
+    const stream = await navigator.mediaDevices.getUserMedia({ // <1>
+      video: false,
+      audio: true,
+    })
+
+    const [track] = stream.getAudioTracks()
+    const settings = track.getSettings() // <2>
+
+    const audioContext = new AudioContext() 
+    await audioContext.audioWorklet.addModule('audio-recorder.js') // <3>
+
+    const mediaStreamSource = audioContext.createMediaStreamSource(stream) // <4>
+    const audioRecorder = new AudioWorkletNode(audioContext, 'audio-recorder') // <5>
+    const buffers = []
+
+    audioRecorder.port.addEventListener('message', event => { // <6>
+      buffers.push(event.data.buffer)
+    })
+    audioRecorder.port.start() // <7>
+
+    mediaStreamSource.connect(audioRecorder) // <8>
+    audioRecorder.connect(audioContext.destination)
+
+    buttonStart.addEventListener('click', event => {
+      buttonStart.setAttribute('disabled', 'disabled')
+      buttonStop.removeAttribute('disabled')
+
+      const parameter = audioRecorder.parameters.get('isRecording')
+      parameter.setValueAtTime(1, audioContext.currentTime) // <9>
+
+      buffers.splice(0, buffers.length)
+    })
+
+    buttonStop.addEventListener ('turbo:load','click', event => {
+      buttonStop.setAttribute('disabled', 'disabled')
+      buttonStart.removeAttribute('disabled')
+
+      const parameter = audioRecorder.parameters.get('isRecording')
+      parameter.setValueAtTime(0, audioContext.currentTime) // <10>
+
+      const blob = encodeAudio(buffers, settings) // <11>
+      const url = URL.createObjectURL(blob)
+
+      audio.src = url
+    })
+  } catch (err) {
+    console.error(err)
   }
+}
 
-  let mediaRecorder;
-  let chunks = [];
+recording()
 
-  record.onclick = () => {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then((stream) => {
-        mediaRecorder = new MediaRecorder(stream);
-        chunks = [];
+// document.addEventListener('turbo:load', () => {
+//   const record = document.querySelector("#buttonRecord");
+//   const stop = document.querySelector("#buttonStop");
+//   const audio = document.querySelector("#player");
 
-        mediaRecorder.ondataavailable = (e) => {
-          chunks.push(e.data);
-        };
+//   if (!record || !stop || !audio) {
+//     console.log("録音用要素が存在しないため、スクリプトをスキップします。");
+//     return;
+//   }
 
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
-          const audioURL = URL.createObjectURL(blob);
-          audio.src = audioURL;
-        };
+//   let mediaRecorder;
+//   let chunks = [];
 
-        mediaRecorder.start();
-        console.log("録音開始");
+//   record.onclick = () => {
+//     navigator.mediaDevices.getUserMedia({ audio: true })
+//       .then((stream) => {
+//         mediaRecorder = new MediaRecorder(stream);
+//         chunks = [];
 
-        record.disabled = true;
-        stop.disabled = false;
+//         mediaRecorder.ondataavailable = (e) => {
+//           chunks.push(e.data);
+//         };
 
-        stop.onclick = () => {
-          mediaRecorder.stop();
-          console.log("録音停止");
-          record.disabled = false;
-          stop.disabled = true;
-        };
-      })
-      .catch((err) => {
-        console.error("マイク取得エラー:", err);
-      });
-  };
-});
+//         mediaRecorder.onstop = () => {
+//           const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
+//           const audioURL = URL.createObjectURL(blob);
+//           audio.src = audioURL;
+//         };
+
+//         mediaRecorder.start();
+//         console.log("録音開始");
+
+//         record.disabled = true;
+//         stop.disabled = false;
+
+//         stop.onclick = () => {
+//           mediaRecorder.stop();
+//           console.log("録音停止");
+//           record.disabled = false;
+//           stop.disabled = true;
+//         };
+//       })
+//       .catch((err) => {
+//         console.error("マイク取得エラー:", err);
+//       });
+//   };
+// });
