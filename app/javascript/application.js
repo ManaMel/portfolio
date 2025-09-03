@@ -2,5 +2,3 @@
 import "@hotwired/turbo-rails"
 import "./controllers"
 import "./recording";
-import "./audio-recorder";
-import "./encode-audio";

@@ -1,8 +1,10 @@
-async function recording () {
+import { encodeAudio } from "./encode-audio";
+
+document.addEventListener('turbo:load', async function recording () {
   try {
     const buttonStart = document.querySelector('#buttonStart')
     const buttonStop = document.querySelector('#buttonStop')
-    const audio = document.querySelector('#player')
+    const audio = document.querySelector('#audio')
 
     const stream = await navigator.mediaDevices.getUserMedia({ // <1>
       video: false,
@@ -13,7 +15,7 @@ async function recording () {
     const settings = track.getSettings() // <2>
 
     const audioContext = new AudioContext() 
-    await audioContext.audioWorklet.addModule('audio-recorder.js') // <3>
+    await audioContext.audioWorklet.addModule('/assets/audio-recorder.js') // <3>
 
     const mediaStreamSource = audioContext.createMediaStreamSource(stream) // <4>
     const audioRecorder = new AudioWorkletNode(audioContext, 'audio-recorder') // <5>
@@ -37,7 +39,7 @@ async function recording () {
       buffers.splice(0, buffers.length)
     })
 
-    buttonStop.addEventListener ('turbo:load','click', event => {
+    buttonStop.addEventListener ('click', event => {
       buttonStop.setAttribute('disabled', 'disabled')
       buttonStart.removeAttribute('disabled')
 
@@ -52,7 +54,7 @@ async function recording () {
   } catch (err) {
     console.error(err)
   }
-}
+});
 
 recording()
 
