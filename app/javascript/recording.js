@@ -15,7 +15,7 @@ document.addEventListener('turbo:load', async function recording () {
     const settings = track.getSettings() // <2>
 
     const audioContext = new AudioContext() 
-    await audioContext.audioWorklet.addModule('/assets/audio-recorder.js') // <3>
+    await audioContext.audioWorklet.addModule('/audio-recorder.js') // <3>
 
     const mediaStreamSource = audioContext.createMediaStreamSource(stream) // <4>
     const audioRecorder = new AudioWorkletNode(audioContext, 'audio-recorder') // <5>
