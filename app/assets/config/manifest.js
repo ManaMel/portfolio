@@ -1,3 +1,3 @@
 //= link_tree ../images
 //= link_tree ../builds
-//= link_tree ../worklets .js
+//= link_tree ../audio-recorder.js
