@@ -1,62 +1,81 @@
 import { encodeAudio } from "./encode-audio";
 
 document.addEventListener('turbo:load', async function recording () {
+  if (window.__audioInitialized__) return
+  window.__audioInitialized__ = true
+
   try {
     const buttonStart = document.querySelector('#buttonStart')
     const buttonStop = document.querySelector('#buttonStop')
     const audio = document.querySelector('#audio')
+    const volumeSlider = document.querySelector('#volumeSlider')
 
-    const stream = await navigator.mediaDevices.getUserMedia({ // <1>
-      video: false,
-      audio: true,
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)() 
+    await audioContext.audioWorklet.addModule('/audio-recorder.js')
+
+    // 再生用GainNodeを作成
+    const playbackGain = audioContext.createGain()
+
+    // AudioElementSourceは一度だけ生成
+    if (!audio.__mediaSource__) {
+      audio.__mediaSource__ = audioContext.createMediaElementSource(audio)
+      audio.__mediaSource__.connect(playbackGain).connect(audioContext.destination)
+    }
+
+    // スライダーで音量調整
+    volumeSlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value)
+      playbackGain.gain.setValueAtTime(value, audioContext.currentTime)
     })
 
+    // 録音準備
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     const [track] = stream.getAudioTracks()
-    const settings = track.getSettings() // <2>
+    const settings = track.getSettings()
 
-    const audioContext = new AudioContext() 
-    await audioContext.audioWorklet.addModule('/audio-recorder.js') // <3>
-
-    const mediaStreamSource = audioContext.createMediaStreamSource(stream) // <4>
-    const audioRecorder = new AudioWorkletNode(audioContext, 'audio-recorder') // <5>
+    const mediaStreamSource = audioContext.createMediaStreamSource(stream)
+    const audioRecorder = new AudioWorkletNode(audioContext, 'audio-recorder')
     const buffers = []
 
-    audioRecorder.port.addEventListener('message', event => { // <6>
-      buffers.push(event.data.buffer)
-    })
-    audioRecorder.port.start() // <7>
+    audioRecorder.port.onmessage = (event) => {
+      let data = event.data
+      if (data instanceof ArrayBuffer) data = new Float32Array(data)
+      buffers.push(data)
+    }
 
-    mediaStreamSource.connect(audioRecorder) // <8>
-    audioRecorder.connect(audioContext.destination)
+    // 録音時はスピーカーに出さない
+    mediaStreamSource.connect(audioRecorder)
 
-    buttonStart.addEventListener('click', event => {
-      buttonStart.setAttribute('disabled', 'disabled')
-      buttonStop.removeAttribute('disabled')
-
-      const parameter = audioRecorder.parameters.get('isRecording')
-      parameter.setValueAtTime(1, audioContext.currentTime) // <9>
-
+    // 録音開始
+    buttonStart.addEventListener('click', async () => {
+      await audioContext.resume()
+      buttonStart.disabled = true
+      buttonStop.disabled = false
       buffers.splice(0, buffers.length)
-    })
-
-    buttonStop.addEventListener ('click', event => {
-      buttonStop.setAttribute('disabled', 'disabled')
-      buttonStart.removeAttribute('disabled')
 
       const parameter = audioRecorder.parameters.get('isRecording')
-      parameter.setValueAtTime(0, audioContext.currentTime) // <10>
-
-      const blob = encodeAudio(buffers, settings) // <11>
-      const url = URL.createObjectURL(blob)
-
-      audio.src = url
+      parameter?.setValueAtTime(1, audioContext.currentTime)
     })
+
+    // 録音停止
+    buttonStop.addEventListener('click', () => {
+      buttonStop.disabled = true
+      buttonStart.disabled = false
+
+      const parameter = audioRecorder.parameters.get('isRecording')
+      parameter?.setValueAtTime(0, audioContext.currentTime)
+
+      const blob = encodeAudio(buffers, settings)
+      const url = URL.createObjectURL(blob)
+      audio.src = url
+      audio.play().catch(err => console.warn('再生エラー:', err))
+    })
+
   } catch (err) {
     console.error(err)
   }
-});
+})
 
-recording()
 
 // document.addEventListener('turbo:load', () => {
 //   const record = document.querySelector("#buttonRecord");

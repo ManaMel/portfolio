@@ -5,7 +5,32 @@
   <button type="button" id="buttonStart" class="bg-green-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">録音開始</button>
   <button type="button" id="buttonStop" class="bg-red-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>録音停止</button>
 
-  <audio controls id="audio"></audio>
+  <div class="flex items-center space-x-2 w-48">
+  <!-- ボリュームスライダー -->
+  <section>
+    <h3>エフェクト</h3>
+    <label>
+      音量:
+      <input type="range" id="volumeSlider" min="0" max="10" step="0.01" value="1">
+    </label><br>
+
+    <label>
+      リバーブ:
+      <input type="range" id="reverbSlider" min="0" max="1" step="0.1" value="0">
+    </label><br>
+
+    <label>
+      エコー:
+      <input type="range" id="echoSlider" min="0" max="2" step="0.01" value="1">
+    </label>
+  </section>
+
+  <section>
+    <h3>出力</h3>
+    <audio id="audio" controls></audio><br>
+    <button id="saveButton">保存</button>
+  </section>
+  </div>
   <br>
   <br>
   <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
