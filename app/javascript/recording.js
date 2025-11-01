@@ -1,6 +1,6 @@
 import { encodeAudio } from "./encode-audio";
 
-document.addEventListener('turbo:load', async function recording() {
+document.addEventListener("turbo:load", async function recording() {
   if (window.__audioInitialized__) return;
   window.__audioInitialized__ = true;
 
@@ -107,7 +107,7 @@ document.addEventListener('turbo:load', async function recording() {
     }
 
     // === 録音開始 ===
-    buttonStart.addEventListener('click', async () => {
+    buttonStart.addEventListener("click", async () => {
       await audioContext.resume();
       buttonStart.disabled = true;
       buttonStop.disabled = false;
@@ -119,7 +119,7 @@ document.addEventListener('turbo:load', async function recording() {
     });
 
     // === 録音停止 ===
-    buttonStop.addEventListener('click', async () => {
+    buttonStop.addEventListener("click", async () => {
       buttonStop.disabled = true;
       buttonStart.disabled = false;
       buttonSave.disabled = false;
@@ -240,3 +240,19 @@ document.addEventListener('turbo:load', async function recording() {
     console.error(err);
   }
 });
+// Turboがページをキャッシュする直前に実行される
+document.addEventListener("turbo:before-cache", () => {
+  // AudioContextを閉じてリセット
+  if (window.audioContext) {
+    try {
+      window.audioContext.close();
+    } catch (e) {}
+    window.audioContext = null;
+  }
+
+  // 初期化フラグをリセット
+  window.__audioInitialized__ = false;
+
+  console.log("AudioContextクリーンアップ完了");
+});
+
