@@ -1,8 +1,27 @@
 import { encodeAudio } from "./encode-audio";
-
-document.addEventListener("turbo:load", async function recording() {
+const element = document.addEventListener("turbo:load", async function recording() {
   if (window.__audioInitialized__) return;
   window.__audioInitialized__ = true;
+
+  const ids = [
+    '#buttonStart',
+    '#buttonStop',
+    '#buttonSave',
+    '#buttonPlay',
+    '#volumeSlider',
+    '#reverbSlider',
+    '#echoDelay',
+    '#echoFeedback'
+  ];
+
+  ids.forEach((id) => {
+    const el = document.querySelector(id);
+    if (el) {
+      console.log(`✅ ${id} found`);
+    } else {
+      console.warn(`⚠️ ${id} not found`);
+    }
+  });
 
   try {
     const buttonStart = document.querySelector('#buttonStart');
