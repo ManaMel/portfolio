@@ -8,40 +8,63 @@ document.addEventListener('turbo:load', async function recording() {
     const buttonStart = document.querySelector('#buttonStart');
     const buttonStop = document.querySelector('#buttonStop');
     const buttonSave = document.querySelector('#buttonSave');
-    const buttonReplay = document.querySelector('#buttonReplay'); // 再生ボタンをHTMLに作る
+    const buttonPlay = document.querySelector('#buttonPlay');
     const volumeSlider = document.querySelector('#volumeSlider');
     const reverbSlider = document.querySelector('#reverbSlider');
+    const echoDelaySlider = document.querySelector('#echoDelay');
+    const echoFeedbackSlider = document.querySelector("#echoFeedback")
 
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     await audioContext.audioWorklet.addModule('/audio-recorder.js');
 
-    // === 再生音量全体 ===
+    // === 全体音量 ===
     const playbackGain = audioContext.createGain();
     playbackGain.gain.value = 1.0;
     playbackGain.connect(audioContext.destination);
 
     // === リバーブ構成 ===
     const convolver = audioContext.createConvolver();
-    const wetGain = audioContext.createGain();
-    const dryGain = audioContext.createGain();
+    const reverbDryGain = audioContext.createGain();
+    const reverbWetGain = audioContext.createGain();
     const reverbInput = audioContext.createGain();
 
-    reverbInput.connect(dryGain);
+    reverbInput.connect(reverbDryGain);
     reverbInput.connect(convolver);
-    convolver.connect(wetGain);
+    convolver.connect(reverbWetGain);
 
-    dryGain.connect(playbackGain);
-    wetGain.connect(playbackGain);
+    reverbDryGain.connect(playbackGain);
+    reverbWetGain.connect(playbackGain);
 
-    dryGain.gain.value = 1.0;
-    wetGain.gain.value = 0.0;
+    // === エコー構成 ===
+    const delay = audioContext.createDelay(5.0); // 最大5秒まで遅延可能
+    const feedbackGain = audioContext.createGain();
+    const echoWetGain = audioContext.createGain();
+    const echoDryGain = audioContext.createGain();
+
+    delay.delayTime.value = 0.25; // デフォルト0.25秒
+    feedbackGain.gain.value = 0.3;
+    echoWetGain.gain.value = 0.5;
+    echoDryGain.gain.value = 0.5;
+
+    // エコー配線
+    const echoInput = audioContext.createGain();
+    echoInput.connect(echoDryGain);
+    echoInput.connect(delay);
+
+    delay.connect(feedbackGain);
+    feedbackGain.connect(delay); // フィードバックループ
+
+    delay.connect(echoWetGain);
+
+    echoDryGain.connect(reverbInput);
+    echoWetGain.connect(reverbInput);
 
     // === IRファイル読み込み ===
     const irBuffer = await fetch('/1 Halls 01 Large Hall_16bit.wav')
       .then(res => res.arrayBuffer())
       .then(buf => audioContext.decodeAudioData(buf));
     convolver.buffer = irBuffer;
-    console.log('✅ IR読み込み成功');
+    console.log('IR（リバーブ）読み込み成功');
 
     // === 録音準備 ===
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -60,17 +83,28 @@ document.addEventListener('turbo:load', async function recording() {
     };
 
     let currentDecodeBuffer = null;
+    let activeSource = null;
 
     // === 再生関数 ===
-    function playWithReverb(audioBuffer) {
+    function playProcessedAudio(audioBuffer) {
+      if (!audioBuffer) return;
+
+      if (activeSource) {
+        try {
+          activeSource.stop();
+        } catch (e) {}
+        activeSource.disconnect();
+        activeSource = null;
+      }
+
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(reverbInput);
+      source.connect(echoInput);
       source.start();
-      return source;
-    }
+      activeSource = source;
 
-    let activeSource = null;
+      console.log("再生開始（リバーブ＋エコー）");
+    }
 
     // === 録音開始 ===
     buttonStart.addEventListener('click', async () => {
@@ -97,44 +131,43 @@ document.addEventListener('turbo:load', async function recording() {
       const arrayBuffer = await blob.arrayBuffer();
       currentDecodeBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-      console.log("🎧 録音完了・AudioBuffer準備OK");
-
-      // 初回自動再生
-      if (activeSource) activeSource.stop();
-      activeSource = playWithReverb(currentDecodeBuffer);
+      console.log("録音完了・AudioBuffer準備OK");
+      playProcessedAudio(currentDecodeBuffer);
     });
 
-    // === 再生ボタン ===
-    if (buttonReplay) {
-      buttonReplay.addEventListener('click', () => {
-        if (!currentDecodeBuffer) return;
-        if (activeSource) {
-          try { activeSource.stop(); } catch(e) {}
-        }
-        activeSource = playWithReverb(currentDecodeBuffer);
-      });
-    }
+    // === 録音済みを再生 ===
+    buttonPlay.addEventListener("click", (e) => {
+      playProcessedAudio(currentDecodeBuffer);
+    });
 
     // === 音量スライダー ===
     volumeSlider.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      playbackGain.gain.setValueAtTime(value, audioContext.currentTime);
+      playbackGain.gain.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime);
     });
 
     // === リバーブスライダー ===
     reverbSlider.addEventListener('input', (e) => {
       const value = parseFloat(e.target.value);
-      dryGain.gain.setValueAtTime(1 - value, audioContext.currentTime);
-      wetGain.gain.setValueAtTime(value, audioContext.currentTime);
+      reverbDryGain.gain.setValueAtTime(1 - value, audioContext.currentTime);
+      reverbWetGain.gain.setValueAtTime(value, audioContext.currentTime);
+    });
+
+    // === エコー遅延スライダー ===
+    echoDelaySlider.addEventListener("input", (e) => {
+      delay.delayTime.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime);
+    });
+
+    // === エコー残響スライダー ===
+    echoFeedbackSlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      feedbackGain.gain.setValueAtTime(value * 0.9, audioContext.currentTime); // 減衰
+      echoWetGain.gain.setValueAtTime(value, audioContext.currentTime);
+      echoDryGain.gain.setValueAtTime(1 - value, audioContext.currentTime);
     });
 
     // === 保存処理 ===
     buttonSave.addEventListener('click', async () => {
-      if (!currentDecodeBuffer || !convolver.buffer) return;
-
-      const gainValue = playbackGain.gain.value;
-      const wetValue = wetGain.gain.value;
-      const dryValue = dryGain.gain.value;
+      if (!currentDecodeBuffer) return;
 
       const offlineCtx = new OfflineAudioContext(
         currentDecodeBuffer.numberOfChannels,
@@ -145,41 +178,62 @@ document.addEventListener('turbo:load', async function recording() {
       const source = offlineCtx.createBufferSource();
       source.buffer = currentDecodeBuffer;
 
+      // オフライン用に同じ構成を再現
       const conv = offlineCtx.createConvolver();
       conv.buffer = convolver.buffer;
 
-      const dry = offlineCtx.createGain();
+      const delay = offlineCtx.createDelay(5.0);
+      const feedback = offlineCtx.createGain();
       const wet = offlineCtx.createGain();
-      const outMaster = offlineCtx.createGain();
+      const dry = offlineCtx.createGain();
+      const master = offlineCtx.createGain();
 
-      dry.gain.value = dryValue * gainValue;
-      wet.gain.value = wetValue * gainValue;
+      delay.delayTime.value = parseFloat(echoDelaySlider.value);
+      feedback.gain.value = parseFloat(echoFeedbackSlider.value);
+      wet.gain.value = parseFloat(echoFeedbackSlider.value);
+      dry.gain.value = 1 - parseFloat(echoFeedbackSlider.value);
+      master.gain.value = playbackGain.gain.value;
 
+      // エコー配線
       source.connect(dry);
-      source.connect(conv);
-      conv.connect(wet);
+      source.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+      delay.connect(wet);
 
-      dry.connect(outMaster);
-      wet.connect(outMaster);
-      outMaster.connect(offlineCtx.destination);
+      // リバーブ接続
+      const reverbIn = offlineCtx.createGain();
+      const reverbDry = offlineCtx.createGain();
+      const reverbWet = offlineCtx.createGain();
+
+      wet.connect(reverbIn);
+      dry.connect(reverbIn);
+
+      reverbIn.connect(reverbDry);
+      reverbIn.connect(conv);
+      conv.connect(reverbWet);
+
+      reverbDry.connect(master);
+      reverbWet.connect(master);
+      master.connect(offlineCtx.destination);
 
       source.start();
 
-      const renderedBuffer = await offlineCtx.startRendering();
+      const rendered = await offlineCtx.startRendering();
 
-      const outChannels = [];
-      for (let ch = 0; ch < renderedBuffer.numberOfChannels; ch++) {
-        outChannels.push(Float32Array.from(renderedBuffer.getChannelData(ch)));
+      const out = [];
+      for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+        out.push(Float32Array.from(rendered.getChannelData(ch)));
       }
 
-      const blob = encodeAudio(outChannels, { sampleRate: renderedBuffer.sampleRate });
+      const blob = encodeAudio(out, { sampleRate: rendered.sampleRate });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'recording_with_reverb.wav';
+      a.download = 'recording_reverb_echo.wav';
       a.click();
 
-      console.log("💾 保存完了");
+      console.log("保存完了（リバーブ＋エコー適用済）");
     });
 
   } catch (err) {
