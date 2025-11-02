@@ -1,27 +1,9 @@
 import { encodeAudio } from "./encode-audio";
+import WaveSurfer from "wavesurfer.js";
+
 const element = document.addEventListener("turbo:load", async function recording() {
   if (window.__audioInitialized__) return;
   window.__audioInitialized__ = true;
-
-  const ids = [
-    '#buttonStart',
-    '#buttonStop',
-    '#buttonSave',
-    '#buttonPlay',
-    '#volumeSlider',
-    '#reverbSlider',
-    '#echoDelay',
-    '#echoFeedback'
-  ];
-
-  ids.forEach((id) => {
-    const el = document.querySelector(id);
-    if (el) {
-      console.log(`✅ ${id} found`);
-    } else {
-      console.warn(`⚠️ ${id} not found`);
-    }
-  });
 
   try {
     const buttonStart = document.querySelector('#buttonStart');
@@ -31,10 +13,26 @@ const element = document.addEventListener("turbo:load", async function recording
     const volumeSlider = document.querySelector('#volumeSlider');
     const reverbSlider = document.querySelector('#reverbSlider');
     const echoDelaySlider = document.querySelector('#echoDelay');
-    const echoFeedbackSlider = document.querySelector("#echoFeedback")
+    const echoFeedbackSlider = document.querySelector("#echoFeedback");
+    const waveformContainer = document.querySelector("#waveform");
+
+    if (!waveformContainer) return;
 
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     await audioContext.audioWorklet.addModule('/audio-recorder.js');
+
+    // === WaveSurfer 初期化 ===
+    const wavesurfer = WaveSurfer.create({
+      container: waveformContainer,
+      audioContext: audioContext,
+      backend: "WebAudio",
+      waveColor: "rgb(200, 0, 200)",
+      ProgressColor: "rgb(200, 0, 200)",
+      cursorColor: "#333",
+      height: 100,
+      responsive: true
+    });
+
 
     // === 全体音量 ===
     const playbackGain = audioContext.createGain();
@@ -72,7 +70,6 @@ const element = document.addEventListener("turbo:load", async function recording
 
     delay.connect(feedbackGain);
     feedbackGain.connect(delay); // フィードバックループ
-
     delay.connect(echoWetGain);
 
     echoDryGain.connect(reverbInput);
@@ -103,6 +100,7 @@ const element = document.addEventListener("turbo:load", async function recording
 
     let currentDecodeBuffer = null;
     let activeSource = null;
+    let lastBlob = null;
 
     // === 再生関数 ===
     function playProcessedAudio(audioBuffer) {
@@ -132,6 +130,7 @@ const element = document.addEventListener("turbo:load", async function recording
       buttonStop.disabled = false;
       buttonSave.disabled = true;
       buffers.splice(0, buffers.length);
+      wavesurfer.empty();
 
       const param = audioRecorder.parameters.get('isRecording');
       param?.setValueAtTime(1, audioContext.currentTime);
@@ -147,35 +146,44 @@ const element = document.addEventListener("turbo:load", async function recording
       param?.setValueAtTime(0, audioContext.currentTime);
 
       const blob = encodeAudio(buffers, settings);
+      // === WaveSurferにblobをロード ===
+      const url = URL.createObjectURL(blob);
+      wavesurfer.load(url); // 加工前音声
       const arrayBuffer = await blob.arrayBuffer();
       currentDecodeBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      // 音声加工
+      const processedBuffer = await applyReverbAndEcho(currentDecodeBuffer);
 
       console.log("録音完了・AudioBuffer準備OK");
       playProcessedAudio(currentDecodeBuffer);
     });
 
-    // === 録音済みを再生 ===
-    buttonPlay.addEventListener("click", (e) => {
-      playProcessedAudio(currentDecodeBuffer);
+    // === 再生ボタン ===
+    buttonPlay.addEventListener("click", async () => {
+      const processedBlob = encodeAudio([processedBuffer.getChannelData(0)], {
+        sampleRate: processedBuffer.sampleRate
     });
-
+    const processedUrl = URL.createObjectURL(processedBlob);
+    wavesurfer.load(processedUrl);
+    });
+    
     // === 音量スライダー ===
     volumeSlider.addEventListener('input', (e) => {
       playbackGain.gain.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime);
     });
-
+    
     // === リバーブスライダー ===
     reverbSlider.addEventListener('input', (e) => {
       const value = parseFloat(e.target.value);
       reverbDryGain.gain.setValueAtTime(1 - value, audioContext.currentTime);
       reverbWetGain.gain.setValueAtTime(value, audioContext.currentTime);
     });
-
+    
     // === エコー遅延スライダー ===
     echoDelaySlider.addEventListener("input", (e) => {
       delay.delayTime.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime);
     });
-
+    
     // === エコー残響スライダー ===
     echoFeedbackSlider.addEventListener('input', (e) => {
       const value = parseFloat(e.target.value);
@@ -183,75 +191,75 @@ const element = document.addEventListener("turbo:load", async function recording
       echoWetGain.gain.setValueAtTime(value, audioContext.currentTime);
       echoDryGain.gain.setValueAtTime(1 - value, audioContext.currentTime);
     });
-
+    
     // === 保存処理 ===
     buttonSave.addEventListener('click', async () => {
       if (!currentDecodeBuffer) return;
-
+      
       const offlineCtx = new OfflineAudioContext(
         currentDecodeBuffer.numberOfChannels,
         currentDecodeBuffer.length,
         currentDecodeBuffer.sampleRate
       );
-
+      
       const source = offlineCtx.createBufferSource();
       source.buffer = currentDecodeBuffer;
-
+      
       // オフライン用に同じ構成を再現
       const conv = offlineCtx.createConvolver();
       conv.buffer = convolver.buffer;
-
+      
       const delay = offlineCtx.createDelay(5.0);
       const feedback = offlineCtx.createGain();
       const wet = offlineCtx.createGain();
       const dry = offlineCtx.createGain();
       const master = offlineCtx.createGain();
-
+      
       delay.delayTime.value = parseFloat(echoDelaySlider.value);
       feedback.gain.value = parseFloat(echoFeedbackSlider.value);
       wet.gain.value = parseFloat(echoFeedbackSlider.value);
       dry.gain.value = 1 - parseFloat(echoFeedbackSlider.value);
       master.gain.value = playbackGain.gain.value;
-
+      
       // エコー配線
       source.connect(dry);
       source.connect(delay);
       delay.connect(feedback);
       feedback.connect(delay);
       delay.connect(wet);
-
+      
       // リバーブ接続
       const reverbIn = offlineCtx.createGain();
       const reverbDry = offlineCtx.createGain();
       const reverbWet = offlineCtx.createGain();
-
+      
       wet.connect(reverbIn);
       dry.connect(reverbIn);
-
+      
       reverbIn.connect(reverbDry);
       reverbIn.connect(conv);
       conv.connect(reverbWet);
-
+      
       reverbDry.connect(master);
       reverbWet.connect(master);
       master.connect(offlineCtx.destination);
-
+      
       source.start();
-
+      
       const rendered = await offlineCtx.startRendering();
-
+      
       const out = [];
       for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
         out.push(Float32Array.from(rendered.getChannelData(ch)));
       }
-
+      
       const blob = encodeAudio(out, { sampleRate: rendered.sampleRate });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'recording_reverb_echo.wav';
       a.click();
-
+      
       console.log("保存完了（リバーブ＋エコー適用済）");
     });
 
@@ -268,10 +276,7 @@ document.addEventListener("turbo:before-cache", () => {
     } catch (e) {}
     window.audioContext = null;
   }
-
   // 初期化フラグをリセット
   window.__audioInitialized__ = false;
-
   console.log("AudioContextクリーンアップ完了");
 });
-
