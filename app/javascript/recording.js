@@ -41,6 +41,7 @@ document.addEventListener("turbo:load", async function recording() {
         cursorColor: '#333',
         height: 96,
         responsive: true,
+        interact: true,
       });
     }
 
@@ -300,6 +301,7 @@ document.addEventListener("turbo:load", async function recording() {
     volumeSlider?.addEventListener('input', (e) => {
       const v = parseFloat(e.target.value);
       playbackGain.gain.setValueAtTime(v, audioContext.currentTime);
+      updateWaveformToProcessedDebounced();
     });
 
     reverbSlider?.addEventListener('input', (e) => {
@@ -307,11 +309,13 @@ document.addEventListener("turbo:load", async function recording() {
       // dry/wet ミックス（ここは好みで変える）
       reverbWetGain.gain.setValueAtTime(v, audioContext.currentTime);
       reverbDryGain.gain.setValueAtTime(1 - v, audioContext.currentTime);
+      updateWaveformToProcessedDebounced();
     });
 
     echoDelaySlider?.addEventListener('input', (e) => {
       const v = parseFloat(e.target.value);
       delayNode.delayTime.setValueAtTime(v, audioContext.currentTime);
+      updateWaveformToProcessedDebounced();
     });
 
     echoFeedbackSlider?.addEventListener('input', (e) => {
@@ -319,6 +323,7 @@ document.addEventListener("turbo:load", async function recording() {
       feedbackGain.gain.setValueAtTime(v * 0.9, audioContext.currentTime);
       echoWetGain.gain.setValueAtTime(v, audioContext.currentTime);
       echoDryGain.gain.setValueAtTime(1 - v, audioContext.currentTime);
+      updateWaveformToProcessedDebounced();
     });
 
     // 保存（現在の設定でオフラインでレンダリングしてダウンロード）
@@ -346,6 +351,15 @@ document.addEventListener("turbo:load", async function recording() {
       }
       const blob = encodeAudio(arr, { sampleRate: rendered.sampleRate });
       if (wavesurfer) wavesurfer.load(URL.createObjectURL(blob));
+    }
+
+    // デバウンス付きで波型更新(スライダー連打対策)
+    let updateTimer = null;
+    async function updateWaveformToProcessedDebounced() {
+      clearTimeout(updateTimer);
+      updateTimer = setTimeout(async () => {
+        await updateWaveformToProcessed();
+      }, 500);
     }
 
     // --- cleanup for turbo ---
