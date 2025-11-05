@@ -1,19 +1,39 @@
 <%= render 'layouts/header' %>
 <button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
-<div class="space-y-4 text-green-900">
-<h1>♪ 歌声や演奏を録音 ♪</h1>
-  <button type="button" id="buttonRecord" class="bg-green-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">録音開始</button>
-  <button type="button" id="buttonStop" class="bg-red-600 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>録音停止</button>
+<div class="space-y-4 text-green-900 text-lg text-center items-center">
+<h1 class=" font-bold">♪ 歌声や演奏を録音 ♪</h1><br>
+  <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">録音開始</button>
+  <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>録音停止</button>
+  <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">再生</button>
+  <button type="button" id="buttonSave" class="bg-blue-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>保存</button>
+  <div id="waveform"></div>
 
-  <audio controls id="player"></audio>
+  <div class="grid grid-cols-1 gap-8">
+    <h3 class="font-bold">エフェクト</h3>
+    <label>
+      音量
+      <input type="range" id="volumeSlider" min="0" max="10" step="0.01" value="1">
+    </label>
+    <label>
+      リバーブ
+      <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.5">
+    </label>
+    <label>
+      エコー遅延時間
+      <input type="range" id="echoDelay" min="0" max="1" step="0.01" value="0.3">
+    </label>
+    <label>
+      エコー残響量
+      <input type="range" id="echoFeedback" min="0" max="0.95" step="0.01" value="0.4">
+    </label>
+  </div>
   <br>
   <br>
   <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
-  <p>♪ ↓ここにYouTubeの音源動画が出てきます。↓ ♪</p>
+  <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
   <br>
   <br>
-</div>
-<div class="contents__content">
+<div class="flex justify-center contents__content">
   <% if defined?(@video) && @video&.video_url.present? %>
     <iframe
       width="560"
@@ -23,8 +43,11 @@
       allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
       allowfullscreen>
     </iframe>
+</div>
+<div class="flex justify-center">
     <%= link_to video_path(@video), data: { turbo_method: :delete } do %>
       <%= render "shared/icon_buttons/delete_button" %>
     <% end %>
   <% end %>
+</div>
 </div>
