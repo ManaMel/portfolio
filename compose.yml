@@ -1,10 +1,6 @@
 services:
   db:
-<<<<<<< HEAD
     image: postgres:16
-=======
-    image: postgres:18
->>>>>>> main
     restart: always
     environment:
       TZ: Asia/Tokyo
