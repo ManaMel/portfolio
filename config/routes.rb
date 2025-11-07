@@ -12,6 +12,7 @@ Rails.application.routes.draw do
         get :search
       end
     end
+    resources :guidelines, only: [ :index ]
   end
 
   devise_for :users, only: [ :sessions, :registrations ], controllers: {
