@@ -3,4 +3,5 @@ class Video < ApplicationRecord
   validates :body, length: { maximum: 65_535 }
 
   belongs_to :user
+  belongs_to :recording
 end
