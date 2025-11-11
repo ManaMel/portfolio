@@ -1,0 +1,59 @@
+<%= render 'layouts/header' %><br>
+<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
+
+<div
+  data-file-upload='{
+  "url": "/upload",
+  "acceptedFiles": "image/*",
+  "maxFiles": 1,
+  "singleton": true
+}' >
+  <template data-file-upload-preview="">
+    <div class="size-20">
+      <img class="w-full rounded-full object-contain" data-dz-thumbnail="" />
+    </div>
+  </template>
+
+  <div class="flex flex-wrap items-center gap-3 sm:gap-5">
+    <div class="group" data-file-upload-previews="" data-file-upload-pseudo-trigger="">
+      <span class="border-base-content/30 text-base-content/50 flex size-17 shrink-0 cursor-pointer items-center justify-center rounded-box border-2 border-dotted hover:bg-base-200/60 group-has-[div]:hidden" >
+        <span class="icon-[tabler--user-square] size-9 shrink-0"></span>
+      </span>
+    </div>
+    <div class="grow">
+      <div class="flex items-center gap-x-2">
+        <button type="button" class="btn btn-primary" data-file-upload-trigger="">
+          <span class="icon-[tabler--upload] size-4 shrink-0"></span>
+          Upload photo
+        </button>
+        <button type="button" class="btn btn-outline btn-error" data-file-upload-clear="">Delete</button>
+      </div>
+    </div>
+  </div>
+</div><br>
+
+<div
+  data-file-upload='{
+  "url": "/upload",
+  "maxFiles": 1,
+  "singleton": true
+}'
+>
+  <template data-file-upload-preview="">
+    <div class="flex w-full items-center">
+      <span class="grow-0 overflow-hidden truncate" data-file-upload-file-name=""></span>
+      <span class="grow-0">.</span>
+      <span class="grow-0" data-file-upload-file-ext=""></span>
+    </div>
+  </template>
+
+  <button type="button" class="relative flex w-full overflow-hidden rounded-lg border border-base-content/20 text-sm focus:z-10 focus:ring-1 focus:border-primary focus:ring-primary focus:outline-none disabled:pointer-events-none disabled:opacity-50" >
+    <span class="h-full text-nowrap bg-primary text-primary-content rounded-s-lg px-4 py-3">Choose File</span>
+    <span class="group flex h-full grow overflow-hidden px-4 py-3 text-base-content" data-file-upload-previews="">
+      <span class="group-has-[div]:hidden">No Chosen File</span>
+    </span>
+    <span class="absolute left-0 top-0 h-full w-full" data-file-upload-trigger=""></span>
+  </button>
+</div><br>
+
+<button type="button" id="videoGenerate" class="bg-green-900 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">動画作成</button>
