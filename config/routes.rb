@@ -16,12 +16,15 @@ Rails.application.routes.draw do
     end
     resources :guidelines, only: [ :index ]
     resources :video_generations, only: [ :index ]
+    namespace :admin do
+      resources :dashboards, only: %i[index]
+    end
   end
-  
-  namespace :admin do
-    resources :dashboards, only: %i[index]
+
+  authenticated :user, ->(u) { u.admin? } do
+    mount Sidekiq::Web => '/admin/sidekiq'   
   end
-  mount Sidekiq::Web, at: '/sidekiq'
+
   
   devise_for :users, only: [ :sessions, :registrations ], controllers: {
     registrations: "users/registrations",
