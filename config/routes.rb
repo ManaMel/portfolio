@@ -1,4 +1,4 @@
-require 'sidekiq/web'
+require "sidekiq/web"
 
 Rails.application.routes.draw do
   get "users/index"
@@ -22,18 +22,15 @@ Rails.application.routes.draw do
   end
 
   authenticated :user, ->(u) { u.admin? } do
-    mount Sidekiq::Web => '/admin/sidekiq'   
+    mount Sidekiq::Web => "/admin/sidekiq"
   end
 
-  
   devise_for :users, only: [ :sessions, :registrations ], controllers: {
     registrations: "users/registrations",
     sessions: "users/sessions"
   }
   get "home/index"
-  
   resources :users, only: [ :index ]
-  
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
