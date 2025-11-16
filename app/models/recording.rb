@@ -1,4 +1,4 @@
-class Recording < ApplicationRecordvalidates
+class Recording < ApplicationRecord
   validates :title, length: { maximum: 255 }
   validates :audio_path, length: { maximum: 255 }
 
