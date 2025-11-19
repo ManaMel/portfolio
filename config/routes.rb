@@ -1,3 +1,5 @@
+require "sidekiq/web"
+
 Rails.application.routes.draw do
   get "users/index"
   unauthenticated do
@@ -13,6 +15,14 @@ Rails.application.routes.draw do
       end
     end
     resources :guidelines, only: [ :index ]
+    resources :video_generations, only: [ :index ]
+    namespace :admin do
+      resources :dashboards, only: %i[index]
+    end
+  end
+
+  authenticated :user, ->(u) { u.admin? } do
+    mount Sidekiq::Web => "/admin/sidekiq"
   end
 
   devise_for :users, only: [ :sessions, :registrations ], controllers: {
@@ -20,7 +30,6 @@ Rails.application.routes.draw do
     sessions: "users/sessions"
   }
   get "home/index"
-
   resources :users, only: [ :index ]
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
