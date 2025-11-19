@@ -2,8 +2,8 @@ Rails.application.config.after_initialize do
   # 本番環境だけで実行
   next unless Rails.env.production?
 
-  admin_email = ENV['ADMIN_EMAIL']
-  admin_password = ENV['ADMIN_PASSWORD']
+  admin_email = ENV["ADMIN_EMAIL"]
+  admin_password = ENV["ADMIN_PASSWORD"]
 
   if User.where(admin: true).none?
     if admin_email.present? && admin_password.present?
