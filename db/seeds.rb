@@ -1,9 +1,19 @@
-User.create!(
-  email: ENV['ADMIN_EMAIL'],
-  password: ENV['ADMIN_PASSWORD'],
-  password_confirmation: ENV['ADMIN_PASSWORD'],
-  admin: true
-)
+admin_email = ENV["ADMIN_EMAIL"]
+admin_password = ENV["ADMIN_PASSWORD"]
+
+if User.where(admin: true).none?
+  if admin_email.present? && admin_password.present?
+    User.create!(
+      email: admin_email,
+      password: admin_password,
+      password_confirmation: admin_password,
+      admin: true
+    )
+    puts "[Admin] Admin user created automatically."
+  else
+    puts "[Admin] Admin user NOT created. ENV variables missing."
+  end
+end
 
 # This file should ensure the existence of records required to run the application in every environment (production,
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
