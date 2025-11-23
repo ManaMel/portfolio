@@ -8,7 +8,8 @@ Rails.application.routes.draw do
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
-    resources :recordings, only: [ :index ]
+    resources :recordings, only: [ :index, :create ]
+    match "post", to: "recordings#post", via: [ :post ]
     resources :videos, only: [ :index, :new, :create, :destroy ] do
       collection do
         get :search

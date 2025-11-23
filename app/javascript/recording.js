@@ -219,20 +219,13 @@ document.addEventListener("turbo:load", async function recording() {
     }
 
     // WAV 化してダウンロード（encodeAudio を利用）
-    function downloadRenderedBufferAsWav(audioBuffer, filename = 'recording_processed.wav') {
-      if (!audioBuffer) return;
-      // collect channels
+    function audioBufferToWavBlob(audioBuffer) {
       const out = [];
       for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
         out.push(Float32Array.from(audioBuffer.getChannelData(ch)));
       }
       const blob = encodeAudio(out, { sampleRate: audioBuffer.sampleRate });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      return blob; // ← WAV の Blob を返す
     }
 
     // --- UI イベントハンドラ ---
@@ -329,16 +322,30 @@ document.addEventListener("turbo:load", async function recording() {
     // 保存（現在の設定でオフラインでレンダリングしてダウンロード）
     buttonSave.addEventListener('click', async () => {
       if (!currentDecodeBuffer) return;
+
       console.log('オフラインレンダリング開始...');
       const rendered = await renderOfflineWithCurrentSettings(currentDecodeBuffer);
-      if (!rendered) {
-        console.warn('レンダリングに失敗しました');
-        return;
-      }
-      downloadRenderedBufferAsWav(rendered, 'recording_reverb_echo.wav');
-      console.log('保存完了');
-    });
 
+      const wavBlob = audioBufferToWavBlob(rendered);
+
+      const formData = new FormData();
+      formData.append("recording[audio_file]", wavBlob, "recording.wav");
+      formData.append("recording[title]", "My Recording");
+
+      fetch("/recordings", {
+        method: "POST",
+        headers: {
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: formData
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Upload failed");
+        console.log('保存完了');       
+      })
+      .catch(err => console.error(err));
+    });
+    
     // オプション：加工済みを波形に反映（WaveSurfer 上で“加工後”波形を見たいとき）
     // 使いたければ UI にボタンを作ってこれを呼ぶ
     async function updateWaveformToProcessed() {

@@ -1,8 +1,9 @@
 class Recording < ApplicationRecord
-  validates :title, length: { maximum: 255 }
-  validates :audio_path, length: { maximum: 255 }
-
+  belongs_to :user
   has_many :videos, dependent: :destroy
 
-  belongs_to :user
+  # Active Storage 用の添付
+  has_one_attached :audio_file # Audio_pathではなく別名に変更
+ 
+  validates :title, length: { maximum: 255 }
 end
