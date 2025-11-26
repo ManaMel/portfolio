@@ -1,30 +1,27 @@
-// audio-recorder.js
 class AudioRecorderProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [{ name: 'isRecording', defaultValue: 0 }];
-  }
-
   constructor() {
     super();
+    this.isRecording = false;
+  }
+
+  static get parameterDescriptors() {
+    return [];
   }
 
   process(inputs, outputs, parameters) {
     const input = inputs[0];
 
-    // どちらにデータが入っているか確認（モノラル/ステレオ対応）
-    const channelData = input && (input[0] || input[1]);
-    if (!channelData) return true;
+    if (!this.isRecording) return true;
 
-    const isRecording = parameters.isRecording[0] === 1;
+    // モノラル対応
+    const channel = input[0];
+    if (!channel) return true;
 
-    if (isRecording) {
-      // Float32Array をコピーして ArrayBuffer にして送信
-      const copy = new Float32Array(channelData);
-      this.port.postMessage(copy.buffer, [copy.buffer]);
-    }
+    let buffer = new Float32Array(channel);
+    this.port.postMessage(buffer);
 
     return true;
   }
 }
 
-registerProcessor('audio-recorder', AudioRecorderProcessor);
+registerProcessor("audio-recorder-processor", AudioRecorderProcessor);
