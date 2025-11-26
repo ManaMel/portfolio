@@ -1,13 +1,17 @@
 <%= render 'layouts/header' %>
-<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
+<button class="absolute top-4 right-4 btn btn-success">
+  <%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %>
+</button>
+
 <div class="space-y-4 text-green-900 text-lg text-center items-center">
-<h1 class=" font-bold">♪ 歌声や演奏を録音 ♪</h1><br>
-  <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">録音開始</button>
-  <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>録音停止</button>
-  <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2">再生</button>
-  <button type="button" id="buttonSave" class="bg-blue-800 text-white rounded px-4 py-2 disabled:bg-gray-400 text-white rounded px-4 py-2" disabled>保存</button>
+  <h1 class="font-bold">♪ 歌声や演奏を録音 ♪</h1><br>
+  <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400">録音開始</button>
+  <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled>録音停止</button>
+  <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400">再生</button>
+  <button type="button" id="buttonSave" class="bg-blue-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled><%= link_to "保存", new_recording_path %></button>
   <div id="waveform"></div>
 
+  <!-- エフェクトUI -->
   <div class="grid grid-cols-1 gap-8">
     <h3 class="font-bold">エフェクト</h3>
     <label>
@@ -27,27 +31,99 @@
       <input type="range" id="echoFeedback" min="0" max="0.95" step="0.01" value="0.4">
     </label>
   </div>
-  <br>
-  <br>
+
+  <!-- 録音保存フォーム -->
+  <div class="max-w-lg mx-auto mt-10 card bg-base-200 p-6 rounded-2xl shadow-lg">
+    <h2 class="text-xl font-bold mb-4">録音を保存</h2>
+    <div class="mb-4">
+      <label class="label">
+        <span class="label-text font-semibold">タイトル</span>
+      </label>
+      <input id="recording-title" type="text" placeholder="例：サビだけ録音 2025/01/01" class="input input-bordered w-full">
+    </div>
+
+    <div class="mb-6">
+      <label class="label">
+        <span class="label-text font-semibold">録音データ</span>
+      </label>
+      <div id="recording-info" class="text-sm opacity-70">
+        ※ まだ録音データが未取得です
+      </div>
+    </div>
+
+    <button id="save-recording-btn" class="btn btn-primary btn-block" disabled>保存する</button>
+    <div id="save-status" class="mt-4 text-sm text-center"></div>
+  </div>
+
+  <br><br>
   <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
   <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
-  <br>
-  <br>
-<div class="flex justify-center contents__content">
-  <% if defined?(@video) && @video&.video_url.present? %>
-    <iframe
-      width="560"
-      height="315"
-      src="https://www.youtube.com/embed/<%= find_youtube_id(@video.video_url) %>"
-      frameborder="0"
-      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
-</div>
-<div class="flex justify-center">
-    <%= link_to video_path(@video), data: { turbo_method: :delete } do %>
-      <%= render "shared/icon_buttons/delete_button" %>
+  <br><br>
+
+  <!-- 既存録音表示 -->
+  <div class="flex flex-col items-center space-y-4">
+    <% @recordings.each do |rec| %>
+      <div class="card p-2 shadow w-full max-w-lg">
+        <strong><%= rec.title %></strong>
+        <% if rec.original_audio.attached? %>
+          <audio controls class="w-full mt-2">
+            <source src="<%= url_for(rec.original_audio) %>" type="<%= rec.original_audio.content_type %>">
+          </audio>
+        <% else %>
+          <p class="text-sm text-gray-500 mt-2">録音データがありません</p>
+        <% end %>
+      </div>
     <% end %>
-  <% end %>
+  </div>
+
+  <!-- 選択中伴奏動画表示 -->
+  <div class="flex justify-center contents__content mt-6">
+    <% if defined?(@video) && @video&.video_url.present? %>
+      <iframe width="560" height="315"
+        src="https://www.youtube.com/embed/<%= find_youtube_id(@video.video_url) %>"
+        frameborder="0"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
+      <div class="flex justify-center mt-2">
+        <%= link_to video_path(@video), data: { turbo_method: :delete } do %>
+          <%= render "shared/icon_buttons/delete_button" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>
-</div>
+
+<script>
+document.getElementById("save-recording-btn").addEventListener("click", () => {
+  const title = document.getElementById("recording-title").value.trim();
+  const wavBlob = window.latestRecordingBlob;
+
+  if (!title) { alert("タイトルを入力してください"); return; }
+  if (!wavBlob) { alert("録音データがありません"); return; }
+
+  const formData = new FormData();
+  formData.append("recording[title]", title);
+  formData.append("recording[original_audio]", wavBlob, `${title}.wav`);
+
+  document.getElementById("save-status").innerText = "保存中...";
+
+  fetch("/recordings", {
+    method: "POST",
+    headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
+    body: formData
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("保存に失敗しました");
+    return res.json().catch(() => ({}));
+  })
+  .then(() => {
+    document.getElementById("save-status").innerText = "保存完了！";
+    window.location.href = "/recordings";
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("save-status").innerText = "保存に失敗しました";
+  });
+});
+</script>

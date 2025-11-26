@@ -1,23 +1,28 @@
 class RecordingsController < ApplicationController
   def index
-    @video = current_user.videos.last
+    @recordings = current_user.recordings
+    @recording = current_user.recordings.new
   end
 
   def create
     @recording = current_user.recordings.new(recording_params)
-    @recording.audio_file.attach(params[:recording][:audio_file]) if params[:recording][:audio_file].present?
 
     if @recording.save
-      render json: { status: "ok" }
+      respond_to do |format|
+        format.html { redirect_to recordings_path, notice: "録音を保存しました" }
+        format.json { render json: { status: "ok", recording_id: @recording.id } }
+      end
     else
-      render json: { status: "error" }, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { render :index, status: :unprocessable_entity }
+        format.json { render json: { status: "error", errors: @recording.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
-  
+
   private
 
   def recording_params
-    # audio_file は ActiveStorage 添付なので permit には含めなくてもOK
-    params.require(:recording).permit(:title)
+    params.require(:recording).permit(:title, :original_audio)
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_23_072609) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_23_163553) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -66,6 +66,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_23_072609) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "video_generations", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "recording_id"
+    t.bigint "video_id"
+    t.string "title"
+    t.text "body"
+    t.string "video_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recording_id"], name: "index_video_generations_on_recording_id"
+    t.index ["user_id"], name: "index_video_generations_on_user_id"
+    t.index ["video_id"], name: "index_video_generations_on_video_id"
+  end
+
   create_table "videos", force: :cascade do |t|
     t.string "title"
     t.text "body"
@@ -80,5 +94,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_23_072609) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "recordings", "users"
+  add_foreign_key "video_generations", "recordings"
+  add_foreign_key "video_generations", "users"
+  add_foreign_key "video_generations", "videos"
   add_foreign_key "videos", "users"
 end

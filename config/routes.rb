@@ -8,7 +8,7 @@ Rails.application.routes.draw do
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
-    resources :recordings, only: [ :index, :create ]
+    resources :recordings, only: [ :index, :new, :create ]
     match "post", to: "recordings#post", via: [ :post ]
     resources :videos, only: [ :index, :new, :create, :destroy ] do
       collection do
@@ -16,7 +16,9 @@ Rails.application.routes.draw do
       end
     end
     resources :guidelines, only: [ :index ]
-    resources :video_generations, only: [ :index ]
+    resources :video_generations, only: [ :index ] do
+      post :generate_audio, on: :collection
+    end
     namespace :admin do
       resources :dashboards, only: %i[index]
     end
