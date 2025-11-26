@@ -1,0 +1,23 @@
+<h2>プロフィール編集</h2>
+
+<%= form_with model: @profile, url: mypage_path, local: true do |f| %>
+  <div>
+    <%= f.label :name %>
+    <%= f.text_field :name %>
+  </div>
+
+  <div>
+    <%= f.label :musical_carrer, "自己紹介" %>
+    <%= f.text_area :musical_carrer %>
+  </div>
+
+  <div>
+    <%= f.label :avatar, "アイコン画像" %>
+    <%= f.file_field :avatar %>
+    <% if @profile.avatar.attached? %>
+      <%= image_tag @profile.avatar, class: "w-24 h-24 rounded-full" %>
+    <% end %>
+  </div>
+
+  <%= f.submit "更新", class: "btn" %>
+<% end %>

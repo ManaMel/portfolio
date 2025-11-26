@@ -1,0 +1,20 @@
+<h2>マイページ</h2>
+
+<div>
+  <p>名前: <%= @profile.name %></p>
+  <p>自己紹介: <%= @profile.musical_carrer %></p>
+  <% if @profile.avatar.attached? %>
+    <%= image_tag @profile.avatar, class: "w-24 h-24 rounded-full" %>
+  <% end %>
+  <%= link_to "プロフィール編集", edit_mypage_path, class: "btn" %>
+</div>
+
+<h3>録音一覧</h3>
+<% @recordings.each do |rec| %>
+  <p><%= rec.created_at.strftime("%Y/%m/%d %H:%M") %> の録音</p>
+  <% if rec.original_audio.attached? %>
+    <audio controls>
+      <source src="<%= url_for(rec.original_audio) %>" type="audio/wav">
+    </audio>
+  <% end %>
+<% end %>

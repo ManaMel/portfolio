@@ -20,6 +20,9 @@ class RecordingsController < ApplicationController
     end
   end
 
+  def show
+  end
+
   private
 
   def recording_params
