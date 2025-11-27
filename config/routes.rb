@@ -19,7 +19,7 @@ Rails.application.routes.draw do
     resources :video_generations, only: [ :index ] do
       post :generate_audio, on: :collection
     end
-    resource :mypage, only: [:show, :edit, :update ]
+    resource :mypage, only: [ :show, :edit, :update ]
     namespace :admin do
       resources :dashboards, only: %i[index]
     end
