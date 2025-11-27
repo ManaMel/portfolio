@@ -2,6 +2,10 @@ class RecordingsController < ApplicationController
   def index
     @recordings = current_user.recordings
     @recording = current_user.recordings.new
+
+    if session[:selected_video_id]
+      @selected_video = Video.find_by(id: session[:selected_video_id])
+    end
   end
 
   def create
@@ -19,6 +23,16 @@ class RecordingsController < ApplicationController
       end
     end
   end
+
+  def show
+  end
+
+  def destroy
+    recording = current_user.recordings.find(params[:id])
+    recording.destroy
+    redirect_to mypage_path, notice: "録音を削除しました"
+  end
+
 
   private
 

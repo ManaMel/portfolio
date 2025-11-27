@@ -1,0 +1,30 @@
+<%= render 'layouts/header' %><br>
+<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
+<div class="flex flex-col justify-center items-center space-y-4 text-green-900">
+<h2>マイページ</h2>
+
+<div>
+  <p>名前: <%= @profile.name %></p>
+  <p>自己紹介: <%= @profile.musical_carrer %></p>
+  <% if @profile.avatar.attached? %>
+    <%= image_tag @profile.avatar, class: "w-24 h-24 rounded-full" %>
+  <% end %>
+  <%= link_to "プロフィール編集", edit_mypage_path, class: "btn" %>
+</div>
+
+<h3>録音一覧</h3>
+<% @recordings.each do |rec| %>
+  <p><%= rec.created_at.strftime("%Y/%m/%d %H:%M") %> の録音</p>
+  <% if rec.original_audio.attached? %>
+    <audio controls>
+      <source src="<%= url_for(rec.original_audio) %>" type="audio/wav">
+    </audio>
+  <% end %>
+  <div class="mt-2">
+      <%= button_to "削除", recording_path(rec),
+          method: :delete,
+          data: { confirm: "本当に削除しますか？" },
+          class: "bg-red-500 text-white px-4 py-1 rounded" %>
+    </div>
+<% end %>
+</div>

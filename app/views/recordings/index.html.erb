@@ -58,40 +58,24 @@
   <br><br>
   <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
   <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
-  <br><br>
 
-  <!-- 既存録音表示 -->
-  <div class="flex flex-col items-center space-y-4">
-    <% @recordings.each do |rec| %>
-      <div class="card p-2 shadow w-full max-w-lg">
-        <strong><%= rec.title %></strong>
-        <% if rec.original_audio.attached? %>
-          <audio controls class="w-full mt-2">
-            <source src="<%= url_for(rec.original_audio) %>" type="<%= rec.original_audio.content_type %>">
-          </audio>
-        <% else %>
-          <p class="text-sm text-gray-500 mt-2">録音データがありません</p>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
+<div class="flex justify-center contents__content mt-6">
+  <% if @selected_video.present? %>
+    <iframe width="560" height="315"
+      src="https://www.youtube.com/embed/<%= find_youtube_id(@selected_video.video_url) %>"
+      frameborder="0"
+      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
 
-  <!-- 選択中伴奏動画表示 -->
-  <div class="flex justify-center contents__content mt-6">
-    <% if defined?(@video) && @video&.video_url.present? %>
-      <iframe width="560" height="315"
-        src="https://www.youtube.com/embed/<%= find_youtube_id(@video.video_url) %>"
-        frameborder="0"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-      </iframe>
-      <div class="flex justify-center mt-2">
-        <%= link_to video_path(@video), data: { turbo_method: :delete } do %>
-          <%= render "shared/icon_buttons/delete_button" %>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
+    <div class="flex justify-center mt-2">
+      <%= link_to video_path(@selected_video), data: { turbo_method: :delete } do %>
+        <%= render "shared/icon_buttons/delete_button" %>
+      <% end %>
+    </div>
+  <% else %>
+    <p>伴奏動画が選択されていません</p>
+  <% end %>
 </div>
 
 <script>

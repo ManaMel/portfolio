@@ -6,6 +6,7 @@ class VideosController < ApplicationController
   def create
     @video = current_user.videos.new(video_params)
     if @video.save
+      session[:selected_video_id] = @video.id
       redirect_to recordings_path, notice: "動画を選択しました"
     else
       render :index, status: :unprocessable_entity
