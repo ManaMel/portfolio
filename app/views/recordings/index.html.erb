@@ -60,21 +60,6 @@
   <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
   <br><br>
 
-  <!-- 既存録音表示 -->
-  <div class="flex flex-col items-center space-y-4">
-    <% @recordings.each do |rec| %>
-      <div class="card p-2 shadow w-full max-w-lg">
-        <strong><%= rec.title %></strong>
-        <% if rec.original_audio.attached? %>
-          <audio controls class="w-full mt-2">
-            <source src="<%= url_for(rec.original_audio) %>" type="<%= rec.original_audio.content_type %>">
-          </audio>
-        <% else %>
-          <p class="text-sm text-gray-500 mt-2">録音データがありません</p>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
 
   <!-- 選択中伴奏動画表示 -->
   <div class="flex justify-center contents__content mt-6">

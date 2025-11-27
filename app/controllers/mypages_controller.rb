@@ -23,6 +23,6 @@ class MypagesController < ApplicationController
   private
 
   def profile_params
-    params.require(:profile).permit(:name, :bio, :avator)
+    params.require(:profile).permit(:name, :musical_carrer, :avator)
   end
 end

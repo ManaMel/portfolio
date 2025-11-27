@@ -23,6 +23,13 @@ class RecordingsController < ApplicationController
   def show
   end
 
+  def destroy
+    recording = current_user.recordings.find(params[:id])
+    recording.destroy
+    redirect_to mypage_path, notice: "録音を削除しました"
+  end
+
+
   private
 
   def recording_params
