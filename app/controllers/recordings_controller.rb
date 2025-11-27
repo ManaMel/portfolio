@@ -2,6 +2,10 @@ class RecordingsController < ApplicationController
   def index
     @recordings = current_user.recordings
     @recording = current_user.recordings.new
+
+    if session[:selected_video_id]
+      @selected_video = Video.find_by(id: session[:selected_video_id])
+    end
   end
 
   def create

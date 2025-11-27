@@ -1,3 +1,6 @@
+<%= render 'layouts/header' %><br>
+<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
+<div class="flex flex-col justify-center items-center space-y-4 text-green-900">
 <h2>プロフィール編集</h2>
 
 <%= form_with model: @profile, url: mypage_path, local: true do |f| %>
@@ -21,3 +24,4 @@
 
   <%= f.submit "更新", class: "btn" %>
 <% end %>
+</div>

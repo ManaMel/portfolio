@@ -12,4 +12,16 @@ class User < ApplicationRecord
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
+  
+  after_create :build_default_profile
+  
+  private
+
+  def build_default_profile
+    create_profile!(
+      name: "",
+      musical_carrer: "",
+      avatar: ""
+    )
+  end
 end
