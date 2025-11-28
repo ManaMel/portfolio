@@ -28,9 +28,9 @@ class AudioMixingJob < ApplicationJob
     CMD
 
     # ActiveStorage に保存
-    recording.mixed_audio.attach(
+    recording.generated_audio.attach(
       io: File.open(out_path),
-      filename: "mixed_#{recording.id}.wav",
+      filename: "mixed_#{recording.title}.wav",
       content_type: "audio/wav"
     )
 

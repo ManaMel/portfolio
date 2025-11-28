@@ -8,8 +8,17 @@ Rails.application.routes.draw do
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
-    resources :recordings, only: [ :index, :new, :create, :show, :destroy ]
-    match "post", to: "recordings#post", via: [ :post ]
+    resources :recordings, only: [:index, :new, :create, :show, :destroy] do
+      collection do
+        post :post
+    end
+      member do
+        get :select_accompaniment
+        patch :update_accompaniment
+        post :generate_audio
+        get :generate_video
+      end
+    end
     resources :videos, only: [ :index, :new, :create, :destroy ] do
       collection do
         get :search

@@ -12,19 +12,56 @@
   <%= link_to "プロフィール編集", edit_mypage_path, class: "btn" %>
 </div>
 
-<h3>録音一覧</h3>
-<% @recordings.each do |rec| %>
-  <p><%= rec.created_at.strftime("%Y/%m/%d %H:%M") %> の録音</p>
-  <% if rec.original_audio.attached? %>
-    <audio controls>
-      <source src="<%= url_for(rec.original_audio) %>" type="audio/wav">
-    </audio>
-  <% end %>
-  <div class="mt-2">
-      <%= button_to "削除", recording_path(rec),
-          method: :delete,
-          data: { confirm: "本当に削除しますか？" },
-          class: "bg-red-500 text-white px-4 py-1 rounded" %>
-    </div>
+<h2 class="text-2xl font-bold mb-4">あなたの録音一覧</h2>
+
+<% @recordings.each do |recording| %>
+  <div class="p-4 bg-base-200 rounded-xl shadow mb-6">
+
+    <!-- タイトル -->
+    <h3 class="text-xl font-semibold"><%= recording.title %></h3>
+    <p class="text-sm opacity-70">作成日: <%= l recording.created_at, format: :short %></p>
+
+    <hr class="my-3">
+
+    <!-- 元の録音 -->
+    <p class="font-bold mt-2">🎤 元の録音</p>
+    <% if recording.original_audio.attached? %>
+      <audio controls class="mt-1 w-full">
+        <source src="<%= url_for(recording.original_audio) %>">
+      </audio>
+    <% else %>
+      <p class="text-sm">未保存</p>
+    <% end %>
+
+    <!-- 伴奏 -->
+    <p class="font-bold mt-4">🎼 伴奏</p>
+    <% if recording.accompaniment.attached? %>
+      <audio controls class="mt-1 w-full">
+        <source src="<%= url_for(recording.accompaniment) %>">
+      </audio>
+    <% else %>
+      <p class="text-sm">未選択</p>
+    <% end %>
+
+    <hr class="my-3">
+
+    <!-- ミックス済み音声 -->
+    <p class="font-bold mt-2">🎧 ミックスされた音声</p>
+    <% if recording.generated_audio.attached? %>
+      <audio controls class="mt-1 w-full">
+        <source src="<%= url_for(recording.generated_audio) %>">
+      </audio>
+
+      <div class="mt-2">
+        <%= link_to "再生成する", generate_audio_recording_path(recording), data: { turbo_method: :post }, class: "btn btn-sm btn-warning" %>
+      </div>
+    <% else %>
+      <p class="text-sm text-gray-500">まだ生成されていません</p>
+
+      <%= link_to "音声を生成する", generate_audio_recording_path(recording),
+          data: { turbo_method: :post },
+          class: "btn btn-primary btn-sm mt-2" %>
+    <% end %>
+
+  </div>
 <% end %>
-</div>

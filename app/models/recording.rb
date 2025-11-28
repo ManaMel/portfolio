@@ -5,7 +5,7 @@ class Recording < ApplicationRecord
   # Active Storage 用の添付
   has_one_attached :original_audio # Audio_pathではなく別名に変更
   has_one_attached :accompaniment
-  has_one_attached :mixed_audio
+  has_one_attached :generated_audio
 
   validates :title, length: { maximum: 255 }
 end
