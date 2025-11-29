@@ -1,4 +1,6 @@
 class Recording < ApplicationRecord
+  enum status: { created: 0, mixing: 1, completed: 2 }
+  
   belongs_to :user
   has_many :videos, dependent: :destroy
 

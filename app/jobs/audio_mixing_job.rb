@@ -34,6 +34,16 @@ class AudioMixingJob < ApplicationJob
       content_type: "audio/wav"
     )
 
+    recording.update(status: :completed)
+
+    # Turbo Stream でマイページへ通知を送る
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "notifications_#{recording.user.id}",
+      target: "flash_messages",
+      partial: "shared/flash",
+      locals: { notice: "音声生成が完了しました！" }
+    )
+
     # tmp 削除
     File.delete(out_path) if File.exist?(out_path)
   end

@@ -45,9 +45,16 @@ class RecordingsController < ApplicationController
       @recording.accompaniment.attach(accomp_file)
     end
 
-    AudioMixingJob.perform_later(@recording.id)
+    # 伴奏が無い場合は弾く
+    unless @recording.accompaniment.attached?
+      redirect_to select_accompaniment_recording_path(@recording),
+        alert: "音声生成には伴奏が必要です。伴奏を選択してください。"
+    return
+    end
 
-    redirect_to recordings_path, notice: "音声生成を開始しました"
+    @recording.update(status: :mixing)
+    AudioMixingJob.perform_later(@recording.id)
+    redirect_to mypage_path, notice: "音声生成を開始しました。完了すると通知が届きます。"
   end
 
   def generate_video

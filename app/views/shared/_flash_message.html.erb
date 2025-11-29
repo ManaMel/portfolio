@@ -3,3 +3,15 @@
     <%= message %>
   </div>
 <% end %>
+
+<% if notice.present? %>
+  <div class="alert alert-success mb-4">
+    <%= notice %>
+  </div>
+<% end %>
+
+<% if alert.present? %>
+  <div class="alert alert-error mb-4">
+    <%= alert %>
+  </div>
+<% end %>

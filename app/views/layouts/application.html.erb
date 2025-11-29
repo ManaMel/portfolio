@@ -18,6 +18,7 @@
   </head>
 
   <body>
+    <%= turbo_stream_from "notifications_#{current_user.id}" if user_signed_in? %>
     <%= render 'shared/flash_message' %>
     <%= yield %>
   </body>
