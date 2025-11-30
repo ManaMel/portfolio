@@ -1,0 +1,111 @@
+<%# app/views/recordings/new.html.erb %>
+
+<%= render 'layouts/header' %>
+
+<div class="max-w-3xl mx-auto mt-8 space-y-6 text-green-900 text-lg text-center items-center">
+
+  <h1 class="font-bold text-2xl">♪ 歌声や演奏を録音 ♪</h1>
+
+  <!-- 録音操作ボタン -->
+  <div class="flex justify-center gap-4">
+    <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400">録音開始</button>
+    <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled>録音停止</button>
+    <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400">再生</button>
+  </div>
+
+  <!-- 波形表示 -->
+  <div id="waveform" class="my-4"></div>
+
+  <!-- エフェクト調整 -->
+  <div class="max-w-xl mx-auto mt-6 p-6 bg-base-200 rounded-2xl shadow-lg space-y-4">
+    <h2 class="text-xl font-bold text-center">エフェクト調整</h2>
+    <div class="form-control">
+      <label class="label"><span class="label-text font-semibold">音量</span></label>
+      <input id="volumeSlider" type="range" min="0" max="2" value="1" step="0.01" class="range range-success">
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text font-semibold">リバーブ（残響）</span></label>
+      <input id="reverbSlider" type="range" min="0" max="1" value="0" step="0.01" class="range range-primary">
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text font-semibold">エコーの遅延時間（秒）</span></label>
+      <input id="echoDelay" type="range" min="0" max="1.0" value="0.25" step="0.01" class="range range-warning">
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text font-semibold">エコーの反射量（フィードバック）</span></label>
+      <input id="echoFeedback" type="range" min="0" max="1.0" value="0.3" step="0.01" class="range range-error">
+    </div>
+  </div>
+
+  <!-- 録音保存フォーム -->
+  <div class="max-w-lg mx-auto mt-8 card bg-base-200 p-6 rounded-2xl shadow-lg space-y-4">
+    <h2 class="text-xl font-bold mb-4">録音を保存</h2>
+
+    <%= form_with url: recordings_path, method: :post, local: true, html: { id: "recording-form" } do |f| %>
+      <div class="mb-4">
+        <label class="label"><span class="label-text font-semibold">タイトル</span></label>
+        <input name="recording[title]" id="recording-title" type="text" placeholder="例：サビだけ録音" class="input input-bordered w-full" required>
+      </div>
+
+      <%= f.hidden_field :original_audio, id: "recording-file-hidden" %>
+
+      <div class="mb-4 text-sm opacity-70" id="recording-info">※ まだ録音データが未取得です</div>
+
+      <%= f.submit "保存する", class: "btn btn-primary btn-block", id: "save-recording-btn", disabled: true %>
+    <% end %>
+
+    <button id="generate-audio-btn" class="btn btn-success btn-block" disabled>音声生成する</button>
+
+    <div class="mt-4 text-center">
+      <%= link_to "自分の録音を確認する", mypage_path, class: "btn btn-outline btn-wide btn-warning" %>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = document.getElementById("save-recording-btn");
+  const generateBtn = document.getElementById("generate-audio-btn");
+  let savedRecordingId = null;
+
+  // 録音停止後に保存ボタンを有効化
+  const observer = new MutationObserver(() => {
+    if (window.latestRecordingBlob) saveBtn.disabled = false;
+  });
+  observer.observe(document.getElementById("recording-info"), { childList: true });
+
+  // 保存
+  document.getElementById("recording-form").addEventListener("submit", (e) => {
+    if (!window.latestRecordingBlob) {
+      e.preventDefault();
+      alert("録音データがありません");
+      return;
+    }
+
+    const fileInput = document.getElementById("recording-file-hidden");
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([window.latestRecordingBlob], "recording.wav", { type: "audio/wav" }));
+    fileInput.files = dataTransfer.files;
+
+    const titleInput = document.getElementById("recording-title");
+    if (!titleInput.value.trim()) {
+      e.preventDefault();
+      alert("タイトルを入力してください");
+      return;
+    }
+
+    // 保存後に generate ボタンを有効化
+    savedRecordingId = null; // フォーム送信後にサーバーでIDを設定してリダイレクトされる前提
+  });
+
+  // 音声生成
+  generateBtn.addEventListener("click", () => {
+    if (!savedRecordingId) {
+      alert("まず録音を保存してください");
+      return;
+    }
+    // 伴奏選択ページへ遷移
+    window.location.href = `/recordings/${savedRecordingId}/mixing`;
+  });
+});
+</script>

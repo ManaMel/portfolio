@@ -34,20 +34,24 @@ class RecordingsController < ApplicationController
   end
 
   def update_accompaniment
-    @recording.accompaniment.attach(params[:recording][:accompaniment])
-    redirect_to mypage_path, notice: "伴奏を選択しました"
+    if params[:recording] && params[:recording][:accompaniment]
+      @recording.accompaniment.attach(params[:recording][:accompaniment])
+      redirect_to mypage_path, notice: "伴奏を選択しました"
+    else
+      redirect_to select_accompaniment_recording_path(@recording), alert: "伴奏ファイルを選択してください"
+    end
   end
 
   def generate_audio
-    accomp_file = params[:accompaniment]
-
-    if accomp_file.present?
-      @recording.accompaniment.attach(accomp_file)
+    # 未選択の場合も現在の伴奏を使用
+    if params[:recording] && params[:recording][:accompaniment]
+      @recording.accompaniment.attach(params[:recording][:accompaniment])
     end
 
+    @recording.start_generation!
     AudioMixingJob.perform_later(@recording.id)
 
-    redirect_to recordings_path, notice: "音声生成を開始しました"
+    redirect_to mypage_path, notice: "音声生成を開始しました"
   end
 
   def generate_video

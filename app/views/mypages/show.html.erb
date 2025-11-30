@@ -1,66 +1,65 @@
-<%= render 'layouts/header' %><br>
-<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
-<div class="flex flex-col justify-center items-center space-y-4 text-green-900">
-<h2>マイページ</h2>
-
-<div>
-  <p>名前: <%= @profile.name %></p>
-  <p>自己紹介: <%= @profile.musical_carrer %></p>
-  <% if @profile.avatar.attached? %>
-    <%= image_tag @profile.avatar, class: "w-24 h-24 rounded-full" %>
-  <% end %>
-  <%= link_to "プロフィール編集", edit_mypage_path, class: "btn" %>
-</div>
-
 <h2 class="text-2xl font-bold mb-4">あなたの録音一覧</h2>
 
 <% @recordings.each do |recording| %>
   <div class="p-4 bg-base-200 rounded-xl shadow mb-6">
-
-    <!-- タイトル -->
+    
     <h3 class="text-xl font-semibold"><%= recording.title %></h3>
-    <p class="text-sm opacity-70">作成日: <%= l recording.created_at, format: :short %></p>
-
-    <hr class="my-3">
 
     <!-- 元の録音 -->
-    <p class="font-bold mt-2">🎤 元の録音</p>
     <% if recording.original_audio.attached? %>
       <audio controls class="mt-1 w-full">
         <source src="<%= url_for(recording.original_audio) %>">
       </audio>
-    <% else %>
-      <p class="text-sm">未保存</p>
     <% end %>
 
     <!-- 伴奏 -->
-    <p class="font-bold mt-4">🎼 伴奏</p>
     <% if recording.accompaniment.attached? %>
       <audio controls class="mt-1 w-full">
         <source src="<%= url_for(recording.accompaniment) %>">
       </audio>
     <% else %>
-      <p class="text-sm">未選択</p>
+      <%= link_to "伴奏を選ぶ", select_accompaniment_recording_path(recording), class: "btn btn-sm btn-info mt-2" %>
     <% end %>
 
-    <hr class="my-3">
+    <!-- ▼ ステータス表示 -->
+    <% if recording.generating? %>
+      <p class="mt-3 text-yellow-600 font-semibold">音声を生成中です…</p>
+      
+      <!-- リロードボタン -->
+      <button
+        onclick="location.reload()"
+        class="btn btn-sm btn-outline mt-1"
+      >
+        生成状況を確認する
+      </button>
+
+      <!-- 自動リロード：10秒ごと -->
+      <script>
+        setTimeout(() => { location.reload(); }, 10000);
+      </script>
+
+    <% elsif recording.generated? && !recording.generated_audio.attached? %>
+      <p class="mt-3 text-green-600 font-semibold">
+        生成が完了しました。
+        <%= link_to "更新して確認する", request.original_url, class: "btn btn-sm btn-outline mt-1" %>
+      </p>
+    <% end %>
 
     <!-- ミックス済み音声 -->
-    <p class="font-bold mt-2">🎧 ミックスされた音声</p>
     <% if recording.generated_audio.attached? %>
-      <audio controls class="mt-1 w-full">
-        <source src="<%= url_for(recording.generated_audio) %>">
+      <p class="font-bold mt-4">🎧 ミックス済み音声</p>
+      <audio controls class="mt-2 w-full">
+        <source src="<%= url_for(recording.generated_audio) %>" type="<%= recording.generated_audio.content_type %>">
       </audio>
+    <% end %>
 
-      <div class="mt-2">
-        <%= link_to "再生成する", generate_audio_recording_path(recording), data: { turbo_method: :post }, class: "btn btn-sm btn-warning" %>
-      </div>
-    <% else %>
-      <p class="text-sm text-gray-500">まだ生成されていません</p>
-
-      <%= link_to "音声を生成する", generate_audio_recording_path(recording),
-          data: { turbo_method: :post },
-          class: "btn btn-primary btn-sm mt-2" %>
+    <!-- 音声生成／再生成ボタン -->
+    <%= form_with url: generate_audio_recording_path(recording), method: :post, local: true do %>
+      <% if recording.generated_audio.attached? %>
+        <%= submit_tag "再生成する", class: "btn btn-sm btn-warning mt-2" %>
+      <% else %>
+        <%= submit_tag "音声を生成する", class: "btn btn-primary btn-sm mt-2" %>
+      <% end %>
     <% end %>
 
   </div>

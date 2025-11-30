@@ -1,12 +1,13 @@
-<h1 class="text-xl font-bold mb-4">伴奏を選択する</h1>
+<h2>伴奏を選択する: <%= @recording.title %></h2>
 
 <%= form_with model: @recording, url: update_accompaniment_recording_path(@recording), local: true, method: :patch, multipart: true do |f| %>
   <div>
-    <%= f.label :accompaniment, "伴奏ファイルをアップロード" %>
+    <%= f.label :accompaniment, "伴奏ファイルを選択" %>
     <%= f.file_field :accompaniment %>
   </div>
-
-  <div class="mt-4">
-    <%= f.submit "保存してマイページに戻る", class: "btn btn-primary" %>
+  <div class="mt-2">
+    <%= f.submit "伴奏を設定する", class: "btn btn-primary" %>
   </div>
 <% end %>
+
+<%= link_to "マイページに戻る", mypage_path, class: "btn btn-link mt-4" %>

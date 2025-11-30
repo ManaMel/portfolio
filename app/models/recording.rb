@@ -1,4 +1,6 @@
 class Recording < ApplicationRecord
+  enum status: { created: 0, generating: 1, generated: 2 }
+
   belongs_to :user
   has_many :videos, dependent: :destroy
 
@@ -8,4 +10,15 @@ class Recording < ApplicationRecord
   has_one_attached :generated_audio
 
   validates :title, length: { maximum: 255 }
+
+   # ジョブをキューに入れるとき
+  def start_generation!
+    update!(status: :generating)
+    AudioMixingJob.perform_later(self.id)
+  end
+
+   # ジョブ完了時
+  def mark_generated!
+    update!(status: :generated)
+  end
 end

@@ -1,0 +1,14 @@
+<%= render 'layouts/header' %>
+
+<h2 class="text-2xl font-bold mb-4 text-center">動画生成</h2>
+
+<p class="text-center mb-4">録音: <%= @recording.title %></p>
+
+<% if @recording.generated_audio.attached? %>
+  <audio controls src="<%= url_for(@recording.generated_audio) %>"></audio>
+  <p class="mt-2">動画生成ボタンを押すと動画が作成されます</p>
+
+  <%= button_to "動画生成", generate_video_recording_path(@recording), method: :get, class: "btn btn-warning mt-4" %>
+<% else %>
+  <p>音声生成が完了していません</p>
+<% end %>
