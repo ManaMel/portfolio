@@ -62,11 +62,11 @@
   </div>
 </div>
 
+<%= f.hidden_field :original_audio, id: "recording-file-hidden" %>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const saveBtn = document.getElementById("save-recording-btn");
-  const generateBtn = document.getElementById("generate-audio-btn");
-  let savedRecordingId = null;
 
   // 録音停止後に保存ボタンを有効化
   const observer = new MutationObserver(() => {
@@ -74,38 +74,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.getElementById("recording-info"), { childList: true });
 
-  // 保存
+  // 保存フォーム送信時に加工済み音声を hidden input にセット
   document.getElementById("recording-form").addEventListener("submit", (e) => {
-    if (!window.latestRecordingBlob) {
+    if (!window.processedAudioBuffer && !window.latestRecordingBlob) {
       e.preventDefault();
       alert("録音データがありません");
       return;
     }
 
+    // Web Audio エフェクト適用済みのバッファを優先
+    const buffer = window.processedAudioBuffer || window.latestRecordingBlobBuffer;
+    const blob = buffer instanceof Blob ? buffer : audioBufferToWavBlob(buffer);
+
     const fileInput = document.getElementById("recording-file-hidden");
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(new File([window.latestRecordingBlob], "recording.wav", { type: "audio/wav" }));
-    fileInput.files = dataTransfer.files;
-
-    const titleInput = document.getElementById("recording-title");
-    if (!titleInput.value.trim()) {
-      e.preventDefault();
-      alert("タイトルを入力してください");
-      return;
-    }
-
-    // 保存後に generate ボタンを有効化
-    savedRecordingId = null; // フォーム送信後にサーバーでIDを設定してリダイレクトされる前提
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], "recording.wav", { type: "audio/wav" }));
+    fileInput.files = dt.files;
   });
 
-  // 音声生成
-  generateBtn.addEventListener("click", () => {
-    if (!savedRecordingId) {
-      alert("まず録音を保存してください");
-      return;
+  // AudioBuffer → WAV Blob
+  function audioBufferToWavBlob(audioBuffer) {
+    const out = [];
+    for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+      out.push(Float32Array.from(audioBuffer.getChannelData(ch)));
     }
-    // 伴奏選択ページへ遷移
-    window.location.href = `/recordings/${savedRecordingId}/mixing`;
-  });
+    return encodeAudio(out, { sampleRate: audioBuffer.sampleRate });
+  }
 });
 </script>

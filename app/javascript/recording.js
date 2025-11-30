@@ -40,7 +40,7 @@ document.addEventListener("turbo:load", async function recording() {
       });
     }
 
-    // --- グローバル再生パイプライン ---
+    // --- グローバル再生パイプライン（リアルタイム再生用） ---
     const playbackGain = audioContext.createGain();
     const convolver = audioContext.createConvolver();
     const reverbDryGain = audioContext.createGain();
@@ -101,28 +101,82 @@ document.addEventListener("turbo:load", async function recording() {
     mediaStreamSource.connect(audioRecorder);
 
     // --- 録音バッファ ---
-    let currentDecodeBuffer = null;
+    let rawAudioBuffer = null;      // 生録音データ
+    let processedAudioBuffer = null; // エフェクト適用済みバッファ
     let activeSource = null;
 
-    function playProcessedAudio(bufferToPlay) {
-      if (!bufferToPlay) return;
+    function playProcessedAudio() {
+      if (!processedAudioBuffer) return;
       if (activeSource) {
         try { activeSource.stop(); } catch {}
         try { activeSource.disconnect(); } catch {}
       }
       const source = audioContext.createBufferSource();
-      source.buffer = bufferToPlay;
-      source.connect(echoInput);
+      source.buffer = processedAudioBuffer;
+      source.connect(playbackGain);
       source.start();
       activeSource = source;
     }
 
-    function audioBufferToWavBlob(audioBuffer) {
+    function audioBufferToWavBlob(buffer) {
       const out = [];
-      for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-        out.push(Float32Array.from(audioBuffer.getChannelData(ch)));
+      for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+        out.push(Float32Array.from(buffer.getChannelData(ch)));
       }
-      return encodeAudio(out, { sampleRate: audioBuffer.sampleRate });
+      return encodeAudio(out, { sampleRate: buffer.sampleRate });
+    }
+
+    // --- エフェクト適用 ---
+    async function renderProcessedBuffer() {
+      if (!rawAudioBuffer) return;
+      const offlineCtx = new OfflineAudioContext(1, rawAudioBuffer.length, audioContext.sampleRate);
+      const source = offlineCtx.createBufferSource();
+      source.buffer = rawAudioBuffer;
+
+      // エフェクトノード
+      const gainNode = offlineCtx.createGain();
+      gainNode.gain.value = volumeSlider.value;
+
+      const conv = offlineCtx.createConvolver();
+      conv.buffer = convolver.buffer;
+
+      const revDry = offlineCtx.createGain();
+      const revWet = offlineCtx.createGain();
+      revWet.gain.value = reverbSlider.value;
+      revDry.gain.value = 1 - reverbSlider.value;
+
+      const del = offlineCtx.createDelay(5.0);
+      del.delayTime.value = echoDelaySlider.value;
+      const fb = offlineCtx.createGain();
+      fb.gain.value = echoFeedbackSlider.value * 0.9;
+      const wet = offlineCtx.createGain();
+      wet.gain.value = echoFeedbackSlider.value;
+      const dry = offlineCtx.createGain();
+      dry.gain.value = 1 - echoFeedbackSlider.value;
+
+      source.connect(gainNode);
+      gainNode.connect(dry);
+      gainNode.connect(del);
+      del.connect(fb);
+      fb.connect(del);
+      del.connect(wet);
+      dry.connect(revDry);
+      wet.connect(revDry);
+      revDry.connect(conv);
+      conv.connect(revWet);
+      revDry.connect(offlineCtx.destination);
+      revWet.connect(offlineCtx.destination);
+
+      source.start();
+      processedAudioBuffer = await offlineCtx.startRendering();
+
+      // WAV化して window に保存
+      window.latestRecordingBlob = audioBufferToWavBlob(processedAudioBuffer);
+
+      // WaveSurfer にも表示
+      if (wavesurfer) {
+        wavesurfer.load(URL.createObjectURL(window.latestRecordingBlob));
+      }
     }
 
     // --- イベントハンドラ ---
@@ -142,6 +196,7 @@ document.addEventListener("turbo:load", async function recording() {
       buttonStop.disabled = true;
       buttonStart.disabled = false;
       buttonSave.disabled = false;
+
       const param = audioRecorder.parameters.get('isRecording');
       param?.setValueAtTime(0, audioContext.currentTime);
 
@@ -149,7 +204,8 @@ document.addEventListener("turbo:load", async function recording() {
         alert("録音データがありません");
         return;
       }
-      
+
+      // 生録音データを作成
       const totalLen = buffers.reduce((s, b) => s + b.length, 0);
       const outBuf = audioContext.createBuffer(1, totalLen, audioContext.sampleRate);
       const channel = outBuf.getChannelData(0);
@@ -158,39 +214,23 @@ document.addEventListener("turbo:load", async function recording() {
         channel.set(chunk, offset);
         offset += chunk.length;
       }
-      currentDecodeBuffer = outBuf;
-      
-      if (wavesurfer) {
-        const blob = encodeAudio([Float32Array.from(currentDecodeBuffer.getChannelData(0))], { sampleRate: currentDecodeBuffer.sampleRate });
-        wavesurfer.load(URL.createObjectURL(blob));
-      }
+      rawAudioBuffer = outBuf;
 
-      // WAV化して window に保存
-      window.latestRecordingBlob = audioBufferToWavBlob(currentDecodeBuffer);
+      // 初回レンダリング（スライダーの初期値を反映）
+      await renderProcessedBuffer();
 
-      // UI 更新
       document.getElementById("recording-info").innerText = "録音データ取得済み ✓";
-      document.getElementById("save-recording-btn").disabled = false;
       console.log("録音停止");
     });
 
-    buttonPlay.addEventListener('click', () => playProcessedAudio(currentDecodeBuffer));
+    buttonPlay.addEventListener('click', () => playProcessedAudio());
 
-    
-
-    // --- スライダー --- 
-    volumeSlider?.addEventListener('input', e => playbackGain.gain.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime));
-    reverbSlider?.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      reverbWetGain.gain.setValueAtTime(v, audioContext.currentTime);
-      reverbDryGain.gain.setValueAtTime(1 - v, audioContext.currentTime);
-    });
-    echoDelaySlider?.addEventListener('input', e => delayNode.delayTime.setValueAtTime(parseFloat(e.target.value), audioContext.currentTime));
-    echoFeedbackSlider?.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      feedbackGain.gain.setValueAtTime(v * 0.9, audioContext.currentTime);
-      echoWetGain.gain.setValueAtTime(v, audioContext.currentTime);
-      echoDryGain.gain.setValueAtTime(1 - v, audioContext.currentTime);
+    // --- スライダーでリアルタイム調整（録音後のみ反映） ---
+    [volumeSlider, reverbSlider, echoDelaySlider, echoFeedbackSlider].forEach(slider => {
+      slider.addEventListener('input', async () => {
+        if (!rawAudioBuffer) return;
+        await renderProcessedBuffer();
+      });
     });
 
     // --- Turbo cleanup ---
