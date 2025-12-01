@@ -3,38 +3,46 @@
   <%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %>
 </button>
 
-<div class="space-y-4 text-green-900 text-lg text-center items-center">
-  <h1 class="font-bold">♪ 歌声や演奏を録音 ♪</h1><br>
-  <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400">録音開始</button>
-  <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled>録音停止</button>
-  <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400">再生</button>
-  <button type="button" id="buttonSave" class="bg-blue-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled><%= link_to "保存", new_recording_path %></button>
-  <div id="waveform"></div>
+<div class="space-y-6 text-green-900 text-lg text-center items-center">
+
+  <!-- タイトル -->
+  <h1 class="font-bold text-2xl">♪ 歌声や演奏を録音 ♪</h1>
+
+  <!-- 録音操作ボタン -->
+  <div class="flex justify-center gap-4">
+    <button type="button" id="buttonStart" class="bg-green-800 text-white rounded px-4 py-2 disabled:bg-gray-400">録音開始</button>
+    <button type="button" id="buttonStop" class="bg-red-800 text-white rounded px-4 py-2 disabled:bg-gray-400" disabled>録音停止</button>
+    <button type="button" id="buttonPlay" class="bg-pink-800 text-white rounded px-4 py-2 disabled:bg-gray-400">再生</button>
+  </div>
+
+  <!-- 波形表示 -->
+  <div id="waveform" class="my-4"></div>
 
   <!-- エフェクトUI -->
-  <div class="grid grid-cols-1 gap-8">
-    <h3 class="font-bold">エフェクト</h3>
+  <div class="grid grid-cols-1 gap-4 max-w-md mx-auto text-left">
+    <h3 class="font-bold text-lg">エフェクト</h3>
     <label>
       音量
-      <input type="range" id="volumeSlider" min="0" max="10" step="0.01" value="1">
+      <input type="range" id="volumeSlider" min="0" max="10" step="0.01" value="1" class="w-full">
     </label>
     <label>
       リバーブ
-      <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.5">
+      <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.5" class="w-full">
     </label>
     <label>
       エコー遅延時間
-      <input type="range" id="echoDelay" min="0" max="1" step="0.01" value="0.3">
+      <input type="range" id="echoDelay" min="0" max="1" step="0.01" value="0.3" class="w-full">
     </label>
     <label>
       エコー残響量
-      <input type="range" id="echoFeedback" min="0" max="0.95" step="0.01" value="0.4">
+      <input type="range" id="echoFeedback" min="0" max="0.95" step="0.01" value="0.4" class="w-full">
     </label>
   </div>
 
   <!-- 録音保存フォーム -->
-  <div class="max-w-lg mx-auto mt-10 card bg-base-200 p-6 rounded-2xl shadow-lg">
+  <div class="max-w-lg mx-auto mt-8 card bg-base-200 p-6 rounded-2xl shadow-lg">
     <h2 class="text-xl font-bold mb-4">録音を保存</h2>
+
     <div class="mb-4">
       <label class="label">
         <span class="label-text font-semibold">タイトル</span>
@@ -53,29 +61,39 @@
 
     <button id="save-recording-btn" class="btn btn-primary btn-block" disabled>保存する</button>
     <div id="save-status" class="mt-4 text-sm text-center"></div>
+
+    <!-- マイページボタン -->
+    <div class="mt-4 text-center">
+      <%= link_to "自分の録音を確認する", mypage_path, class: "btn btn-outline btn-wide btn-warning" %>
+    </div>
   </div>
 
-  <br><br>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
-  <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
+  <!-- 伴奏動画選択 -->
+  <div class="mt-6">
+    <button class="btn btn-wide btn-outline btn-warning mb-2"><%= link_to "♪ 伴奏動画を選択する", videos_path %></button>
+    <p class="font-bold">♪ ↓ 伴奏動画 ↓ ♪</p>
+  </div>
 
-<div class="flex justify-center contents__content mt-6">
-  <% if @selected_video.present? %>
-    <iframe width="560" height="315"
-      src="https://www.youtube.com/embed/<%= find_youtube_id(@selected_video.video_url) %>"
-      frameborder="0"
-      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
+  <!-- 伴奏動画表示 -->
+  <div class="flex justify-center contents__content mt-4">
+    <% if @selected_video.present? %>
+      <iframe width="560" height="315"
+        src="https://www.youtube.com/embed/<%= find_youtube_id(@selected_video.video_url) %>"
+        frameborder="0"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
 
-    <div class="flex justify-center mt-2">
-      <%= link_to video_path(@selected_video), data: { turbo_method: :delete } do %>
-        <%= render "shared/icon_buttons/delete_button" %>
-      <% end %>
-    </div>
-  <% else %>
-    <p>伴奏動画が選択されていません</p>
-  <% end %>
+      <div class="flex justify-center mt-2">
+        <%= link_to video_path(@selected_video), data: { turbo_method: :delete } do %>
+          <%= render "shared/icon_buttons/delete_button" %>
+        <% end %>
+      </div>
+    <% else %>
+      <p>伴奏動画が選択されていません</p>
+    <% end %>
+  </div>
+
 </div>
 
 <script>
@@ -94,16 +112,22 @@ document.getElementById("save-recording-btn").addEventListener("click", () => {
 
   fetch("/recordings", {
     method: "POST",
-    headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
+    headers: {
+      "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+      "Accept": "application/json"
+    },
     body: formData
   })
-  .then(res => {
-    if (!res.ok) throw new Error("保存に失敗しました");
-    return res.json().catch(() => ({}));
-  })
-  .then(() => {
-    document.getElementById("save-status").innerText = "保存完了！";
-    window.location.href = "/recordings";
+  .then(res => res.json())
+  .then(data => {
+    if (data.status !== "ok") throw new Error("保存レスポンス異常");
+
+    document.getElementById("save-status").innerText = "保存完了！マイページに移動します...";
+
+    // 1秒後に自動遷移
+    setTimeout(() => {
+      window.location.href = data.redirect_url;
+    }, 1000);
   })
   .catch(err => {
     console.error(err);
