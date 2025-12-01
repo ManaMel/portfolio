@@ -1,5 +1,5 @@
 class RecordingsController < ApplicationController
-  before_action :set_recording, only: [:show, :destroy, :select_accompaniment, :update_accompaniment, :generate_audio, :generate_video, :destroy_original, :destroy_accompaniment, :destroy_generated]
+  before_action :set_recording, only: [ :show, :destroy, :select_accompaniment, :update_accompaniment, :generate_audio, :generate_video, :destroy_original, :destroy_accompaniment, :destroy_generated ]
 
   def index
     @recordings = current_user.recordings.order(created_at: :desc)
@@ -28,13 +28,13 @@ class RecordingsController < ApplicationController
 
   def show
   end
-  
+
   def destroy
     @recording.destroy
 
     respond_to do |format|
       format.turbo_stream
-      format.html { redirect_to mypage_path, notice: "削除しました"}
+      format.html { redirect_to mypage_path, notice: "削除しました" }
     end
   end
 

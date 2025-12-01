@@ -11,13 +11,13 @@ class Recording < ApplicationRecord
 
   validates :title, length: { maximum: 255 }
 
-   # ジョブをキューに入れるとき
+  # ジョブをキューに入れるとき
   def start_generation!
     update!(status: :generating)
     AudioMixingJob.perform_later(self.id)
   end
 
-   # ジョブ完了時
+  # ジョブ完了時
   def mark_generated!
     update!(status: :generated)
   end

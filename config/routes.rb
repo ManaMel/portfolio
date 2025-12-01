@@ -8,7 +8,7 @@ Rails.application.routes.draw do
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
-    resources :recordings, only: [:index, :new, :create, :show, :destroy] do
+    resources :recordings, only: [ :index, :new, :create, :show, :destroy ] do
       collection do
         post :post
     end
