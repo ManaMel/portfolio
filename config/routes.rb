@@ -17,6 +17,9 @@ Rails.application.routes.draw do
         patch :update_accompaniment
         post :generate_audio
         get :generate_video
+        delete :destroy_original
+        delete :destroy_accompaniment
+        delete :destroy_generated
       end
     end
     resources :videos, only: [ :index, :new, :create, :destroy ] do

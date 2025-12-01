@@ -1,5 +1,5 @@
 class RecordingsController < ApplicationController
-  before_action :set_recording, only: [:show, :destroy, :select_accompaniment, :update_accompaniment, :generate_audio, :generate_video]
+  before_action :set_recording, only: [:show, :destroy, :select_accompaniment, :update_accompaniment, :generate_audio, :generate_video, :destroy_original, :destroy_accompaniment, :destroy_generated]
 
   def index
     @recordings = current_user.recordings.order(created_at: :desc)
@@ -27,7 +27,11 @@ class RecordingsController < ApplicationController
   
   def destroy
     @recording.destroy
-    redirect_to mypage_path, notice: "録音を削除しました"  # ← 一覧へ戻す
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to mypage_path, notice: "削除しました"}
+    end
   end
 
   def select_accompaniment
@@ -55,6 +59,21 @@ class RecordingsController < ApplicationController
   end
 
   def generate_video
+  end
+
+  def destroy_original
+    @recording.original_audio.purge
+    redirect_back fallback_location: mypage_path, notice: "元の録音を削除しました"
+  end
+
+  def destroy_accompaniment
+    @recording.accompaniment.purge
+    redirect_back fallback_location: mypage_path, notice: "伴奏を削除しました"
+  end
+
+  def destroy_generated
+    @recording.generated_audio.purge
+    redirect_back fallback_location: mypage_path, notice: "生成済み音声を削除しました"
   end
 
   private
