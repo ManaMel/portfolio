@@ -1,3 +1,4 @@
+# Dockerfileの修正後の内容
 # syntax=docker/dockerfile:1
 
 ARG RUBY_VERSION=3.3.6
@@ -13,7 +14,7 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 修正1: BUNDLE_PATHをローカルのvendorに変更（Render環境で推奨）
+# 修正1: BUNDLE_PATHをローカルのvendorに変更（Render環境で必須）
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -23,13 +24,13 @@ ENV RAILS_ENV=production \
 # Build stage
 # --------------------------
 FROM base AS build
-
+# ... (apt-get install はそのまま) ...
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Node
+# Node (このブロックはそのまま)
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
 ENV PATH=/usr/local/node/bin:$PATH
@@ -40,18 +41,16 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 
 # Install gems
 COPY Gemfile Gemfile.lock ./
-# 修正2: BUNDLE_BINをrailsのbinディレクトリに設定 (実行ファイルのリンク先)
-RUN bundle install --jobs 4 --retry 3 --local && \
+# 修正2: binstubsで実行ファイルを./binに作成
+RUN bundle install --jobs 4 --retry 3 && \
     bundle binstubs --all --path ./bin
 
-# Install JS packages
+# ... (JS packages, Copy application, Precompile assets はそのまま) ...
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
-# Copy application
 COPY . .
 
-# Precompile assets
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # --------------------------
@@ -59,26 +58,25 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 # --------------------------
 FROM base
 
-# Install ffmpeg
+# Install ffmpeg (このブロックはそのまま残す)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Copy app and node_modules
+# Copy app and node_modules (このブロックはそのまま)
 COPY --from=build /rails /rails
 COPY --from=build /usr/local/node /usr/local/node
 
-# Create non-root user
+# Create non-root user (このブロックはそのまま)
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
     chown -R rails:rails /rails
 USER rails
 
-# 修正3: Gemの実行ファイルへのパスを$PATHに追加
-# BUNDLE_PATHを/rails/vendor/bundleに変更したため、その実行ディレクトリを追加
-ENV PATH="/rails/bin:$PATH"
+# 修正3: Gemの実行ファイルへのパスを$PATHに追加 (sidekiq not found回避)
+ENV PATH="/rails/bin:/usr/local/node/bin:$PATH"
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-# 修正4: CMDをbundle exec形式に変更 (Pumaを想定)
+# 修正4: CMDを標準のPuma起動コマンドに変更
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
