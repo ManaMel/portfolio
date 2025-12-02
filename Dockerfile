@@ -13,9 +13,10 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# 修正1: BUNDLE_PATHをローカルのvendorに変更（Render環境で推奨）
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
-    BUNDLE_PATH="/usr/local/bundle" \
+    BUNDLE_PATH="/rails/vendor/bundle" \
     BUNDLE_WITHOUT="development"
 
 # --------------------------
@@ -39,7 +40,9 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 
 # Install gems
 COPY Gemfile Gemfile.lock ./
-RUN bundle install
+# 修正2: BUNDLE_BINをrailsのbinディレクトリに設定 (実行ファイルのリンク先)
+RUN bundle install --jobs 4 --retry 3 --local && \
+    bundle binstubs --all --path ./bin
 
 # Install JS packages
 COPY package.json yarn.lock ./
@@ -71,8 +74,11 @@ RUN groupadd --system --gid 1000 rails && \
     chown -R rails:rails /rails
 USER rails
 
-ENV PATH=/usr/local/node/bin:$PATH
+# 修正3: Gemの実行ファイルへのパスを$PATHに追加
+# BUNDLE_PATHを/rails/vendor/bundleに変更したため、その実行ディレクトリを追加
+ENV PATH="/rails/bin:$PATH"
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-CMD ["./bin/rails", "server"]
+# 修正4: CMDをbundle exec形式に変更 (Pumaを想定)
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
