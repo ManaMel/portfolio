@@ -30,6 +30,8 @@ RUN apt-get update -qq && \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+RUN gem install bundler --version '~> 2.6'
+
 # Node (このブロックはそのまま)
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
