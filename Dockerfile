@@ -43,7 +43,6 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 COPY Gemfile Gemfile.lock ./
 # 修正2: binstubsで実行ファイルを./binに作成
 RUN bundle install --jobs 4 --retry 3 && \
-    bundle binstubs --all --path ./bin
 
 # ... (JS packages, Copy application, Precompile assets はそのまま) ...
 COPY package.json yarn.lock ./
