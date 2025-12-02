@@ -51,8 +51,6 @@ RUN yarn install --frozen-lockfile
 
 COPY . .
 
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
-
 # --------------------------
 # Final stage
 # --------------------------
@@ -63,9 +61,13 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+RUN rm -rf /rails/vendor/bundle
+
 # Copy app and node_modules (このブロックはそのまま)
 COPY --from=build /rails /rails
 COPY --from=build /usr/local/node /usr/local/node
+
+RUN bundle install --local --jobs 4 --retry 3
 
 # Create non-root user (このブロックはそのまま)
 RUN groupadd --system --gid 1000 rails && \
