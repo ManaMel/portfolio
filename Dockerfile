@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # =================================================================
-# BASE STAGE: 基本環境のセットアップ (全てのステージの基盤)
+# BASE STAGE: 基本環境のセットアップ
 # =================================================================
 ARG RUBY_VERSION=3.3.6
 FROM ruby:$RUBY_VERSION-slim AS base
@@ -10,7 +10,7 @@ FROM ruby:$RUBY_VERSION-slim AS base
 WORKDIR /rails
 
 # ベース環境のシステム依存パッケージのインストール
-# libvips (画像処理) と postgresql-client (DB接続) を含みます。
+# libvips (画像処理), postgresql-client (DB接続)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
@@ -31,16 +31,15 @@ ENV RAILS_ENV=production \
 # =================================================================
 FROM base AS build
 
-# ビルドに必要なシステム依存パッケージのインストール
-# build-essential や libpq-dev など、GemのC拡張をビルドするために必要
+# ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
+# zlib1g-dev, libgmp-dev を追加し、より多くのC拡張に対応
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
-    # 【修正 1-1】libyaml-devを追加: date_core.soやpsychの依存関係解決に役立つ
-    libyaml-dev && \
+    libyaml-dev zlib1g-dev libgmp-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Node.jsとYarnのインストール (フロントエンドのビルド用)
+# Node.jsとYarnのインストール
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
 ENV PATH=/usr/local/node/bin:$PATH
@@ -55,32 +54,28 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-
-# 【修正 1-2】キャッシュ無効化（daisyuiエラー対策）:
-# ビルド時のタイムスタンプを引数として渡すことで、この層のDockerキャッシュを強制的に無効化し、
-# yarn install が必ず実行されるようにします。
-ARG CACHE_BREAKER=$(date +%s)
-RUN echo "Cache breaker: $CACHE_BREAKER" 
+# これでdaisyuiが確実にインストールされます
 RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
 
+# 【重要】アセットプリコンパイルをDocker Build Stage内で完了させる
+# Web Serviceのデプロイ時（Start Command）のアセットビルドを不要にし、daisyuiのエラーを回避
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+
 # =================================================================
-# FINAL STAGE: 実行環境 (軽量化のためビルドツールを削除)
+# FINAL STAGE: 実行環境 (ビルドツールを削除した軽量環境)
 # =================================================================
 FROM base
 
-# 【修正 2-1】bundlerバージョンを明示的に指定してインストール
-RUN gem install bundler -v 2.6.8 --conservative
-
-# ffmpegと【修正 2-2】libyamlのランタイム依存パッケージのインストール
-# libyaml-0-2は、date_core.soのエラーを解決するための重要なランタイムライブラリです。
+# 【C拡張ランタイム強化】
+# libyaml-0-2, zlib1g, libgmp10 を追加し、date_core.soなどの実行時エラーを解消
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ffmpeg libyaml-0-2 && \
+    apt-get install --no-install-recommends -y ffmpeg libyaml-0-2 zlib1g libgmp10 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Build Stageから必要なファイルのみをコピー（Vendor bundleを含む）
+# Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
 COPY --from=build /rails /rails
 COPY --from=build /usr/local/node /usr/local/node
 
