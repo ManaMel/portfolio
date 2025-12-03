@@ -32,11 +32,11 @@ ENV RAILS_ENV=production \
 FROM base AS build
 
 # ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
-# zlib1g-dev, libgmp-dev を追加し、より多くのC拡張に対応
+# zlib1g-dev, libgmp-dev, libssl-dev, openssl などを追加し、より多くのC拡張に対応
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
-    libyaml-dev zlib1g-dev libgmp-dev && \
+    libyaml-dev zlib1g-dev libgmp-dev libssl-dev openssl && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Node.jsとYarnのインストール
@@ -61,18 +61,25 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # 【重要】アセットプリコンパイルをDocker Build Stage内で完了させる
-# msgpack.so のエラーを解消するため、RAILS_ENVを明示的に指定します。
-RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Sidekiq/Redisの初期化エラーを回避するため、ガード用の環境変数 SKIP_REDIS_CONFIG=true を追加します。
+RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ビルドツールを削除した軽量環境)
 # =================================================================
 FROM base
 
-# 【C拡張ランタイム強化】
-# libyaml-0-2, zlib1g, libgmp10 を追加し、date_core.soなどの実行時エラーを解消
+# 【C拡張ランタイム強化 - 重点修正】
+# date_core.soエラー（libgmp/libssl依存）とpsych警告（libyaml依存）を解消
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ffmpeg libyaml-0-2 zlib1g libgmp10 && \
+    apt-get install --no-install-recommends -y \
+    ffmpeg \
+    libyaml-0-2 \
+    zlib1g \
+    libgmp10 \
+    libssl3 \
+    libreadline8 \
+    libncursesw6 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
