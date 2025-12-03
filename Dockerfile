@@ -10,7 +10,6 @@ FROM ruby:$RUBY_VERSION-slim AS base
 WORKDIR /rails
 
 # ベース環境のシステム依存パッケージのインストール
-# libvips (画像処理), postgresql-client (DB接続)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
@@ -32,7 +31,6 @@ ENV RAILS_ENV=production \
 FROM base AS build
 
 # ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
-# zlib1g-dev, libgmp-dev, libssl-dev, openssl などを追加し、より多くのC拡張に対応
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
@@ -54,14 +52,15 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-# これでdaisyuiが確実にインストールされます
 RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
 
-# 【重要】アセットプリコンパイルをDocker Build Stage内で完了させる
-# Sidekiq/Redisの初期化エラーを回避するため、ガード用の環境変数 SKIP_REDIS_CONFIG=true を追加します。
+# 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
+COPY database.yml.build config/database.yml 
+
+# 【重要】アセットプリコンパイル
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
@@ -69,17 +68,28 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 # =================================================================
 FROM base
 
-# 【C拡張ランタイム強化 - 重点修正】
-# date_core.soエラー（libgmp/libssl依存）とpsych警告（libyaml依存）を解消
+# 【C拡張ランタイム強化 - 最終強化版】
+# date_core.so、psych、その他のC拡張機能のロードエラーを解決するために必要な、
+# すべての重要なランタイムライブラリを網羅します。
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     ffmpeg \
+    # YAML/Psych
     libyaml-0-2 \
+    # date_core.so / BigDecimal / OpenSSL
     zlib1g \
     libgmp10 \
     libssl3 \
+    libffi8 \
+    # ターミナル操作系（なくても動くことが多いが、念のため）
     libreadline8 \
-    libncursesw6 && \
+    libncursesw6 \
+    libgdbm6 \
+    # データベース、XML関連のGem依存
+    libpq5 \
+    libxml2 \
+    libxslt1.1 \
+    libsqlite3-0 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
