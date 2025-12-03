@@ -57,6 +57,10 @@ RUN yarn install --frozen-lockfile
 # 3. アプリケーションコードのコピー
 COPY . .
 
+# 【重要：Bootsnapキャッシュクリア】
+# msgpack.so LoadErrorを解決するため、Rails起動の直前にキャッシュを確実に削除
+RUN rm -rf tmp/cache
+
 # 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
 COPY database.yml.build config/database.yml 
 
@@ -69,23 +73,17 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 FROM base
 
 # 【C拡張ランタイム強化 - 最終強化版】
-# date_core.so、psych、その他のC拡張機能のロードエラーを解決するために必要な、
-# すべての重要なランタイムライブラリを網羅します。
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     ffmpeg \
-    # YAML/Psych
     libyaml-0-2 \
-    # date_core.so / BigDecimal / OpenSSL
     zlib1g \
     libgmp10 \
     libssl3 \
     libffi8 \
-    # ターミナル操作系（なくても動くことが多いが、念のため）
     libreadline8 \
     libncursesw6 \
     libgdbm6 \
-    # データベース、XML関連のGem依存
     libpq5 \
     libxml2 \
     libxslt1.1 \
