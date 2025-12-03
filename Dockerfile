@@ -61,8 +61,8 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # 【重要】アセットプリコンパイルをDocker Build Stage内で完了させる
-# Web Serviceのデプロイ時（Start Command）のアセットビルドを不要にし、daisyuiのエラーを回避
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# msgpack.so のエラーを解消するため、RAILS_ENVを明示的に指定します。
+RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ビルドツールを削除した軽量環境)
