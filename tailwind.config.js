@@ -1,26 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Tailwindが適用されるファイルを指定
+  // Rails 7 のデフォルトかつ DaisyUI を含めるための最小構成
   content: [
     './app/helpers/**/*.rb',
     './app/javascript/**/*.js',
-    './app/views/**/*.{erb,haml,html,slim}'
+    './app/views/**/*.{erb,haml,html,slim}',
   ],
   theme: {
     extend: {},
   },
-  // 💡 daisyUIプラグインの登録（これが最重要）
   plugins: [
     require('daisyui'),
   ],
-  // daisyUIのカスタム設定（オプション）
+  // DaisyUI の設定は必須ではありませんが、残しておきます
   daisyui: {
-    styled: true,
     themes: ["light", "dark", "cupcake"],
-    base: true,
-    utils: true,
-    logs: false,
-    prefix: "",
-    darkTheme: "dark",
   },
 }

@@ -17,3 +17,10 @@ RUN mkdir /myapp
 WORKDIR /myapp
 RUN gem install bundler
 COPY . /myapp
+
+# 必要なすべてのRuby Gemをインストール
+RUN bundle install
+
+# 必要なすべてのNode.jsパッケージ（Tailwind, DaisyUIなど）をインストール
+# --frozen-lockfile を使うことで、依存関係の不整合を防ぐ
+RUN yarn install --frozen-lockfile
