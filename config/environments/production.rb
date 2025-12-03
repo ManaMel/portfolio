@@ -23,8 +23,11 @@ Rails.application.configure do
   # Disable serving static files from `public/`, relying on NGINX/Apache to do so instead.
   # config.public_file_server.enabled = false
   # config/environments/production.rb
-  config.public_file_server.enabled = true
+  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
 
+  config.assets.js_compressor = Uglifier.new(harmony: true)
+  config.assets.css_compressor = :sass
+  
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass
 
