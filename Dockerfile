@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1
 
+# =================================================================
+# BASE STAGE: 基本環境のセットアップ (全てのステージの基盤)
+# =================================================================
 ARG RUBY_VERSION=3.3.6
 FROM ruby:$RUBY_VERSION-slim AS base
 
@@ -7,6 +10,7 @@ FROM ruby:$RUBY_VERSION-slim AS base
 WORKDIR /rails
 
 # ベース環境のシステム依存パッケージのインストール
+# libvips (画像処理) と postgresql-client (DB接続) を含みます。
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
@@ -15,25 +19,28 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 環境変数の設定
+# 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
     BUNDLE_WITHOUT="development" \
     PATH="/rails/bin:/usr/local/node/bin:$PATH"
 
-# --------------------------
-# Build stage
-# --------------------------
+# =================================================================
+# BUILD STAGE: アプリケーションのビルドと依存関係のインストール
+# =================================================================
 FROM base AS build
 
 # ビルドに必要なシステム依存パッケージのインストール
+# build-essential や libpq-dev など、GemのC拡張をビルドするために必要
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
-    build-essential git libpq-dev node-gyp pkg-config python-is-python3 && \
+    build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
+    # 【修正 1-1】libyaml-devを追加: date_core.soやpsychの依存関係解決に役立つ
+    libyaml-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Node.jsとYarnのインストール
+# Node.jsとYarnのインストール (フロントエンドのビルド用)
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
 ENV PATH=/usr/local/node/bin:$PATH
@@ -44,42 +51,40 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
-# BUNDLE_PATHによって/rails/vendor/bundleにインストールされる
 RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
+
+# 【修正 1-2】キャッシュ無効化（daisyuiエラー対策）:
+# ビルド時のタイムスタンプを引数として渡すことで、この層のDockerキャッシュを強制的に無効化し、
+# yarn install が必ず実行されるようにします。
+ARG CACHE_BREAKER=$(date +%s)
+RUN echo "Cache breaker: $CACHE_BREAKER" 
 RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
 
-# --------------------------
-# Final stage
-# --------------------------
+# =================================================================
+# FINAL STAGE: 実行環境 (軽量化のためビルドツールを削除)
+# =================================================================
 FROM base
 
-# bundlerバージョンを明示的に指定してインストール
+# 【修正 2-1】bundlerバージョンを明示的に指定してインストール
 RUN gem install bundler -v 2.6.8 --conservative
 
-# ffmpegのインストール
+# ffmpegと【修正 2-2】libyamlのランタイム依存パッケージのインストール
+# libyaml-0-2は、date_core.soのエラーを解決するための重要なランタイムライブラリです。
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ffmpeg && \
+    apt-get install --no-install-recommends -y ffmpeg libyaml-0-2 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 【修正済み】
-# Build Stageでインストールされた /rails/vendor/bundle を削除するステップを削除しました。
-# これにより、ネイティブ拡張（.soファイル）が残ります。
-
-# Copy app, Gems, and node_modules from build stage
-# COPY --from=build /rails /rails は、/rails/vendor/bundle を含む全てのファイルを持ってきます。
+# Build Stageから必要なファイルのみをコピー（Vendor bundleを含む）
 COPY --from=build /rails /rails
 COPY --from=build /usr/local/node /usr/local/node
 
-# bundle install --local は不要です。
-# COPYの時点で既に依存関係は揃っているため、削除します。
-
-# 非ルートユーザーの作成 (このブロックはそのまま)
+# 非ルートユーザーの作成と設定
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
     chown -R rails:rails /rails
@@ -88,4 +93,4 @@ USER rails
 # ENTRYPOINTとCMDの設定
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"] # Webサービスの起動コマンド
