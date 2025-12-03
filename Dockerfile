@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # =================================================================
-# BASE STAGE: 基本環境のセットアップ
+# BASE STAGE: 基本環境のセットアップ (標準イメージにアップグレード)
 # =================================================================
 ARG RUBY_VERSION=3.3.6
-FROM ruby:$RUBY_VERSION-slim AS base
+FROM ruby:$RUBY_VERSION AS base
 
 # 作業ディレクトリの設定
 WORKDIR /rails
@@ -15,7 +15,8 @@ RUN apt-get update -qq && \
     curl \
     libjemalloc2 \
     libvips \
-    postgresql-client && \
+    postgresql-client \
+    ffmpeg && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # 環境変数の設定 (本番環境用の設定)
@@ -31,10 +32,11 @@ ENV RAILS_ENV=production \
 FROM base AS build
 
 # ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
+# 標準イメージをベースにしたため、依存を最小化
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
-    libyaml-dev zlib1g-dev libgmp-dev libssl-dev openssl && \
+    zlib1g-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Node.jsとYarnのインストール
@@ -58,7 +60,7 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # 【重要：Bootsnapキャッシュクリア】
-# msgpack.so LoadErrorを解決するため、Rails起動の直前にキャッシュを確実に削除
+# C拡張のロードエラー（msgpack.soなど）を解決するため、キャッシュを確実に削除
 RUN rm -rf tmp/cache
 
 # 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
@@ -68,27 +70,11 @@ COPY database.yml.build config/database.yml
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
-# FINAL STAGE: 実行環境 (ビルドツールを削除した軽量環境)
+# FINAL STAGE: 実行環境 (非常に安定した環境)
 # =================================================================
 FROM base
 
-# 【C拡張ランタイム強化 - 最終強化版】
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    ffmpeg \
-    libyaml-0-2 \
-    zlib1g \
-    libgmp10 \
-    libssl3 \
-    libffi8 \
-    libreadline8 \
-    libncursesw6 \
-    libgdbm6 \
-    libpq5 \
-    libxml2 \
-    libxslt1.1 \
-    libsqlite3-0 && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+# C拡張ランタイム強化ブロックは、標準イメージへの変更により削除されました。
 
 # Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
 COPY --from=build /rails /rails
