@@ -58,7 +58,10 @@ COPY . .
 # --------------------------
 FROM base
 
-# 【ここを修正】Worker Serviceのbundlerエラー対応: 適切なバージョンのbundlerをインストールする
+# Fix 1: esbuildが見つからない問題を解消するため、node_modulesの実行可能ファイルをPATHに追加します。
+ENV PATH="/rails/node_modules/.bin:$PATH"
+
+# Fix 2: Worker Serviceのbundlerバージョン不一致エラーを解消するため、適切なバージョンのbundlerをインストールします。
 RUN gem install bundler --conservative
 
 # ffmpegのインストール
