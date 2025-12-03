@@ -15,7 +15,7 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 環境変数の設定
+# 環境変数の設定 (PATH設定はBase Stageで保持)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -58,11 +58,9 @@ COPY . .
 # --------------------------
 FROM base
 
-# Fix 1: esbuildが見つからない問題を解消するため、node_modulesの実行可能ファイルをPATHに追加します。
-ENV PATH="/rails/node_modules/.bin:$PATH"
-
-# Fix 2: Worker Serviceのbundlerバージョン不一致エラーを解消するため、適切なバージョンのbundlerをインストールします。
-RUN gem install bundler --conservative
+# 【修正】bundlerバージョンを明示的に指定してインストール（~> 2.6を満たす最新版をインストール）
+# これでWorker Serviceのビルドエラーが解消します。
+RUN gem install bundler -v 2.6.8 --conservative
 
 # ffmpegのインストール
 RUN apt-get update -qq && \
