@@ -15,7 +15,7 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 環境変数の設定 (PATH設定はBase Stageで保持)
+# 環境変数の設定
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -44,6 +44,7 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
+# BUNDLE_PATHによって/rails/vendor/bundleにインストールされる
 RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
@@ -58,8 +59,7 @@ COPY . .
 # --------------------------
 FROM base
 
-# 【修正】bundlerバージョンを明示的に指定してインストール（~> 2.6を満たす最新版をインストール）
-# これでWorker Serviceのビルドエラーが解消します。
+# bundlerバージョンを明示的に指定してインストール
 RUN gem install bundler -v 2.6.8 --conservative
 
 # ffmpegのインストール
@@ -67,15 +67,17 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 不要な bundle の削除
-RUN rm -rf /rails/vendor/bundle
+# 【修正済み】
+# Build Stageでインストールされた /rails/vendor/bundle を削除するステップを削除しました。
+# これにより、ネイティブ拡張（.soファイル）が残ります。
 
 # Copy app, Gems, and node_modules from build stage
+# COPY --from=build /rails /rails は、/rails/vendor/bundle を含む全てのファイルを持ってきます。
 COPY --from=build /rails /rails
 COPY --from=build /usr/local/node /usr/local/node
 
-# bundle install --local でローカルのGemをリンク
-RUN bundle install --local --jobs 4 --retry 3
+# bundle install --local は不要です。
+# COPYの時点で既に依存関係は揃っているため、削除します。
 
 # 非ルートユーザーの作成 (このブロックはそのまま)
 RUN groupadd --system --gid 1000 rails && \
