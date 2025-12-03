@@ -24,7 +24,7 @@ Rails.application.configure do
   # config.public_file_server.enabled = false
   # config/environments/production.rb
   config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
-  
+
   config.assets.css_compressor = :sass
 
   # Compress CSS using a preprocessor.
@@ -75,7 +75,6 @@ Rails.application.configure do
   # config.cache_store = :mem_cache_store
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
-  config.active_job.queue_adapter = :sidekiq
   # config.active_job.queue_name_prefix = "myapp_production"
 
   # Disable caching for Action Mailer templates even if Action Controller
