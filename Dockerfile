@@ -15,7 +15,7 @@ RUN apt-get update -qq && \
     postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 修正1: 環境変数の設定 (Render環境で推奨されるBUNDLE_PATHなど)
+# 環境変数の設定
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -33,7 +33,7 @@ RUN apt-get update -qq && \
     build-essential git libpq-dev node-gyp pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Node.jsとYarnのインストール (このブロックはそのまま)
+# Node.jsとYarnのインストール
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
 ENV PATH=/usr/local/node/bin:$PATH
@@ -44,7 +44,6 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
-# 修正2: RUNコマンドの末尾の不要な && \ を削除
 RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
@@ -58,6 +57,9 @@ COPY . .
 # Final stage
 # --------------------------
 FROM base
+
+# 【ここを修正】Worker Serviceのbundlerエラー対応: 適切なバージョンのbundlerをインストールする
+RUN gem install bundler --conservative
 
 # ffmpegのインストール
 RUN apt-get update -qq && \
@@ -80,8 +82,7 @@ RUN groupadd --system --gid 1000 rails && \
     chown -R rails:rails /rails
 USER rails
 
-# 修正3: ENTRYPOINTとCMDの設定
-# Web Service/Worker ServiceのStart/Docker Commandで上書きされるため、デフォルトは最小限に
+# ENTRYPOINTとCMDの設定
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
