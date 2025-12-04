@@ -1,30 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# =================================================================
-# BASE STAGE: 基本環境のセットアップ (標準イメージにアップグレード)
-# =================================================================
-ARG RUBY_VERSION=3.3.6
-FROM ruby:$RUBY_VERSION AS base
-
-# 作業ディレクトリの設定
-WORKDIR /rails
-
-# ベース環境のシステム依存パッケージのインストール
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    curl \
-    libjemalloc2 \
-    libvips \
-    postgresql-client \
-    ffmpeg && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# 環境変数の設定 (本番環境用の設定)
-ENV RAILS_ENV=production \
-    BUNDLE_DEPLOYMENT=1 \
-    BUNDLE_PATH="/rails/vendor/bundle" \
-    BUNDLE_WITHOUT="development" \
-    PATH="/rails/bin:/usr/local/node/bin:$PATH"
+# ... [BASE STAGEは省略] ...
 
 # =================================================================
 # BUILD STAGE: アプリケーションのビルドと依存関係のインストール
@@ -55,7 +31,7 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable
 
 # 3. アプリケーションコードのコピー
 COPY . .
