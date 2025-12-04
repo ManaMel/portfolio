@@ -70,7 +70,8 @@ RUN rm -rf tmp/cache
 COPY database.yml.build config/database.yml 
 
 # 【重要】アセットプリコンパイル
-RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
+# 修正点: DISABLE_BOOTSNAP=1 を追加し、C拡張のロードエラーを回避します。
+RUN DISABLE_BOOTSNAP=1 RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2)
