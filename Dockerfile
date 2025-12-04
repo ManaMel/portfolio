@@ -13,7 +13,7 @@ ENV RAILS_ENV=production \
     BUNDLE_WITHOUT="development" \
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
     # タイムゾーン設定
-    TZ Asia/Tokyo
+    TZ=Asia/Tokyo
 
 # 必要なシステムパッケージのインストール
 # date_core.so や psych の問題を解決するため、ビルドに必要なパッケージを追加
