@@ -29,7 +29,7 @@ RUN apt-get update -qq && \
     # PostgreSQLクライアント
     libpq-dev \
     # Node/Yarnのセットアップに必要な基本ツール
-    ca-certificates curl gnupg dirmngr \
+    ca-certificates curl gnupg dirmngr wget \
     && rm -rf /var/lib/apt/lists/*
     
 # =================================================================
