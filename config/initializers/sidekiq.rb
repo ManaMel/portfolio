@@ -1,38 +1,28 @@
-# Sidekiq設定ファイル
-# Redisへの接続設定と、アセットプリコンパイル時の処理スキップガードを含みます。
+# SidekiqのRedis接続設定を修正します。
+# 接続URLは環境変数から取得するか、Docker Composeのサービス名 'redis' を使います。
+# Docker環境ではサービス名がホスト名として機能します。
+redis_url = ENV.fetch('REDIS_URL', 'redis://redis:6379/0')
 
-# ActiveSupportの拡張メソッド（present?）を初期化段階で利用できるようにする
-require 'active_support/core_ext/object/blank' 
-
-# 環境変数 SKIP_REDIS_CONFIG が存在する場合、このブロックの処理をスキップ
-# これにより、assets:precompile実行時にRedis接続を試みてビルドが失敗するのを防ぎます。
-if ENV['SKIP_REDIS_CONFIG'].present?
-  Rails.logger.info "Skipping Sidekiq/Redis configuration (SKIP_REDIS_CONFIG is set)."
-  return
-end
-
-# ActiveJob のアダプタ設定
-Rails.application.config.active_job.queue_adapter = :sidekiq
-
-# Redis接続URLの決定。Docker Compose環境では 'redis://redis:6379/1' となることを想定
-REDIS_CONNECTION_URL = ENV.fetch("REDIS_URL", "redis://localhost:6379/1")
-SIDEKIQ_NAMESPACE = "portfolio_sidekiq"
-
-# --- Sidekiqサーバー側の設定 (WebプロセスとSidekiqプロセスで使用) ---
+# Sidekiqサーバー側の設定（ジョブを処理するワーカー用）
 Sidekiq.configure_server do |config|
-  # Sidekiq 8.xで安定しやすいブロック形式を使用してRedis接続を設定します。
-  config.redis do |redis_config|
-    redis_config.url = REDIS_CONNECTION_URL
-    redis_config.namespace = SIDEKIQ_NAMESPACE
-  end
-
-  Rails.logger.info "Sidekiq server will connect to Redis at: #{REDIS_CONNECTION_URL} with namespace: #{SIDEKIQ_NAMESPACE}"
+  # Redis設定は、クライアントが正しく処理できるように、シンプルなハッシュとして渡します。
+  config.redis = {
+    url: redis_url,
+    # サーバー側は通常、同時実行スレッド数に合わせて接続プールサイズを設定します。
+    size: ENV.fetch('SIDEKIQ_POOL_SIZE', 10).to_i,
+    # 問題の原因となりうる、Sidekiqが期待しない余計なキー（例: pool_name）は削除します。
+  }
 end
 
-# --- Sidekiqクライアント側の設定 (ActiveJobを呼ぶ全てのコードで使用) ---
+# Sidekiqクライアント側の設定（ジョブをキューに入れるアプリケーション側用）
 Sidekiq.configure_client do |config|
-  config.redis do |redis_config|
-    redis_config.url = REDIS_CONNECTION_URL
-    redis_config.namespace = SIDEKIQ_NAMESPACE
-  end
+  # クライアント側は接続プールサイズを小さく保つのが一般的です。
+  config.redis = {
+    url: redis_url,
+    size: ENV.fetch('SIDEKIQ_CLIENT_POOL_SIZE', 1).to_i
+  }
 end
+
+# 注: 以前のSidekiqのバージョンで使用されていたRedis接続プールオプションの
+# 誤った残骸や、過度に複雑な設定ロジックがエラーを引き起こすことが多いため、
+# 上記のように、必要最小限のシンプルな設定にすることをお勧めします。
