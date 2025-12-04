@@ -4,7 +4,7 @@
 # BASE STAGE: 基本環境のセットアップ (ステージ 0)
 # =================================================================
 ARG RUBY_VERSION=3.3.6
-FROM ruby:$RUBY_VERSION AS base # ステージ名: base (または 0)
+FROM ruby:$RUBY_VERSION AS base
 
 # 作業ディレクトリの設定
 WORKDIR /rails
