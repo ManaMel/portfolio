@@ -56,8 +56,8 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-# --frozen-lockfile を --immutable に変更 (Yarn v2+対応)
-RUN yarn install --immutable
+# 修正: Yarnのオプションを全て削除し、純粋なインストールコマンドに戻します。
+RUN yarn install
 
 # 3. アプリケーションコードのコピー
 COPY . .
