@@ -1,11 +1,36 @@
 # syntax=docker/dockerfile:1
 
-# ... [BASE STAGEは省略] ...
+# =================================================================
+# BASE STAGE: 基本環境のセットアップ (ステージ 0)
+# =================================================================
+ARG RUBY_VERSION=3.3.6
+FROM ruby:$RUBY_VERSION AS base # ステージ名: base (または 0)
+
+# 作業ディレクトリの設定
+WORKDIR /rails
+
+# ベース環境のシステム依存パッケージのインストール
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    curl \
+    libjemalloc2 \
+    libvips \
+    postgresql-client \
+    ffmpeg && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# 環境変数の設定 (本番環境用の設定)
+ENV RAILS_ENV=production \
+    BUNDLE_DEPLOYMENT=1 \
+    BUNDLE_PATH="/rails/vendor/bundle" \
+    BUNDLE_WITHOUT="development" \
+    PATH="/rails/bin:/usr/local/node/bin:$PATH"
 
 # =================================================================
-# BUILD STAGE: アプリケーションのビルドと依存関係のインストール
+# BUILD STAGE: アプリケーションのビルドと依存関係のインストール (ステージ 1)
 # =================================================================
-FROM base AS build
+# 修正点: FROM base を FROM 0 に変更し、最初のステージを確実な番号で参照します。
+FROM 0 AS build 
 
 # ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
 # 標準イメージをベースにしたため、依存を最小化
@@ -31,6 +56,7 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
+# 修正点: --frozen-lockfile を --immutable に変更 (前回の修正を反映)
 RUN yarn install --immutable
 
 # 3. アプリケーションコードのコピー
@@ -47,9 +73,10 @@ COPY database.yml.build config/database.yml
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
-# FINAL STAGE: 実行環境 (非常に安定した環境)
+# FINAL STAGE: 実行環境 (ステージ 2)
 # =================================================================
-FROM base
+# 修正点: FROM base を FROM 0 に変更し、最初のステージを確実な番号で参照します。
+FROM 0 
 
 # C拡張ランタイム強化ブロックは、標準イメージへの変更により削除されました。
 
