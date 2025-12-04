@@ -29,8 +29,8 @@ ENV RAILS_ENV=production \
 # =================================================================
 # BUILD STAGE: アプリケーションのビルドと依存関係のインストール (ステージ 1)
 # =================================================================
-# 修正点: FROM base を FROM 0 に変更し、最初のステージを確実な番号で参照します。
-FROM 0 AS build 
+# ステージ 0 (base) を名前で参照します。数字 (0) ではなくエイリアス名 (base) を使用します。
+FROM base AS build 
 
 # ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
 # 標準イメージをベースにしたため、依存を最小化
@@ -56,7 +56,7 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-# 修正点: --frozen-lockfile を --immutable に変更 (前回の修正を反映)
+# --frozen-lockfile を --immutable に変更 (Yarn v2+対応)
 RUN yarn install --immutable
 
 # 3. アプリケーションコードのコピー
@@ -75,10 +75,8 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2)
 # =================================================================
-# 最初のステージ (base) を名前で参照します。
-FROM base
-
-# C拡張ランタイム強化ブロックは、標準イメージへの変更により削除されました。
+# ステージ 0 (base) を名前で参照します。
+FROM base 
 
 # Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
 COPY --from=build /rails /rails
