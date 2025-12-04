@@ -29,26 +29,26 @@ ENV RAILS_ENV=production \
 # =================================================================
 # BUILD STAGE: アプリケーションのビルドと依存関係のインストール (ステージ 1)
 # =================================================================
-# ステージ 0 (base) を名前で参照します。数字 (0) ではなくエイリアス名 (base) を使用します。
 FROM base AS build 
 
-# ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
-# 標準イメージをベースにしたため、依存を最小化
+# -------------------------------------------------------------
+# 修正ブロック: Node.js/Yarnのインストールを開発環境の安定方式に統一
+# -------------------------------------------------------------
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    build-essential git libpq-dev node-gyp pkg-config python-is-python3 \
-    zlib1g-dev && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    apt-get install -y ca-certificates curl gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && NODE_MAJOR=20 \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && wget --quiet -O - /tmp/pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
-# Node.jsとYarnのインストール
-ARG NODE_VERSION=20.19.1
-ARG YARN_VERSION=1.22.22
-ENV PATH="/rails/bin:/usr/local/node/bin:$PATH"
+# ビルドに必要なシステム依存パッケージのインストール (C拡張ビルド用)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
-    nodejs \
-    yarn && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    build-essential libpq-dev nodejs yarn python-is-python3 zlib1g-dev \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
+# -------------------------------------------------------------
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
@@ -56,8 +56,8 @@ RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-# 修正: Yarnのオプションを全て削除し、純粋なインストールコマンドに戻します。
-RUN yarn install
+# 開発環境で成功しているオプションに戻す
+RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
@@ -75,7 +75,6 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2)
 # =================================================================
-# ステージ 0 (base) を名前で参照します。
 FROM base 
 
 # Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
