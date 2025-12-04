@@ -32,7 +32,7 @@ ENV RAILS_ENV=production \
 FROM base AS build 
 
 # -------------------------------------------------------------
-# 修正ブロック: Node.js/Yarnのインストールを開発環境の安定方式に統一
+# Node.js/Yarnのインストール
 # -------------------------------------------------------------
 RUN apt-get update -qq && \
     apt-get install -y ca-certificates curl gnupg \
@@ -52,26 +52,25 @@ RUN apt-get update -qq && \
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
+# BootsnapがGemfileから削除されているため、これだけでOK
 RUN bundle install --jobs 4 --retry 3
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
-# 開発環境で成功しているオプションに戻す
 RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
 
-# 【重要：Bootsnapキャッシュクリア】
-# C拡張のロードエラー（msgpack.soなど）を解決するため、キャッシュを確実に削除
+# 【重要：キャッシュクリア】
 RUN rm -rf tmp/cache
 
 # 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
 COPY database.yml.build config/database.yml 
 
 # 【重要】アセットプリコンパイル
-# 修正点: DISABLE_BOOTSNAP=1 を追加し、C拡張のロードエラーを回避します。
-RUN DISABLE_BOOTSNAP=1 RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
+# Bootsnapがないため、このステップはC拡張エラーなく成功するはず
+RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2)
@@ -91,4 +90,4 @@ USER rails
 # ENTRYPOINTとCMDの設定
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"] # Webサービスの起動コマンド
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
