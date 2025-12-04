@@ -42,11 +42,12 @@ RUN apt-get update -qq && \
 # Node.jsとYarnのインストール
 ARG NODE_VERSION=20.19.1
 ARG YARN_VERSION=1.22.22
-ENV PATH=/usr/local/node/bin:$PATH
-RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz -C /tmp/ && \
-    /tmp/node-build-master/bin/node-build "$NODE_VERSION" /usr/local/node && \
-    npm install -g yarn@$YARN_VERSION && \
-    rm -rf /tmp/node-build-master
+ENV PATH="/rails/bin:/usr/local/node/bin:$PATH"
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    nodejs \
+    yarn && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
