@@ -5,7 +5,7 @@
 # =================================================================
 FROM ruby:3.3.0-slim AS base
 
-# 環境変数の設定 (本番環境用の設定)
+# ... (ENV設定は省略)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -14,7 +14,7 @@ ENV RAILS_ENV=production \
     # タイムゾーン設定
     TZ=Asia/Tokyo
 
-# 必要なシステムパッケージのインストール
+# 必要なシステムパッケージのインストール (前回修正済み)
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     # C拡張のビルドに必要なツール
@@ -25,7 +25,6 @@ RUN apt-get update -qq && \
     libpq-dev \
     # Node/Yarnのセットアップに必要な基本ツール
     ca-certificates curl gnupg dirmngr wget \
-    # 【追加】タイムゾーンデータ（一部環境で必要）
     tzdata \
     && rm -rf /var/lib/apt/lists/*
     
@@ -57,12 +56,19 @@ RUN apt-get update -qq && \
 COPY Gemfile Gemfile.lock ./
 # 必要なBundlerバージョンを明示的にインストール
 RUN gem install bundler --version "~> 2.6" --no-document
+
+# ====================================================================
+# 修正: C拡張のビルドフラグを明示的に設定
+# psych (YAML) のビルドフラグを設定
+RUN bundle config build.psych --with-yaml-dir=/usr/lib/x86_64-linux-gnu/
+# date のビルドフラグを設定 (念のため)
+RUN bundle config build.date --with-ext-dir=ext/date
+# ====================================================================
+
 # Gemのインストール
 RUN bundle install --jobs 4 --retry 3
-# ====================================================================
-# ★★★ 追加修正: C拡張ビルドを確実に反映させるためのクリーンアップ ★★★
+# C拡張ビルドを確実に反映させるためのクリーンアップ
 RUN bundle clean --force
-# ====================================================================
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
