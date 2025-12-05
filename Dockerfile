@@ -10,7 +10,6 @@ ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
     BUNDLE_WITHOUT="development" \
-    # PATHに /rails/vendor/bundle/ruby/.../bin を含めるため、ここでは一旦簡略化
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
     # タイムゾーン設定
     TZ=Asia/Tokyo
@@ -62,9 +61,11 @@ RUN bundle install --jobs 4 --retry 3
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
-# 3. アプリケーションコードのコピー
+# 3. アプリケーションコードとエントリーポイントのコピー
 COPY . .
-RUN chmod +x bin/rails
+# エントリーポイントのコピーと実行権限の付与 (bin/docker-entrypointとして保存してください)
+COPY bin/docker-entrypoint ./bin/docker-entrypoint
+RUN chmod +x bin/rails bin/docker-entrypoint
 RUN rm -rf tmp/cache
 
 # 【DB接続回避策】ダミーファイルをコピー
@@ -101,19 +102,8 @@ RUN apt-get purge -y --auto-remove \
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
 
-# ★★★ 最終調整: BUNDLE_PATHとネイティブ拡張の参照パスを強制的に設定 ★★★
-# Gemがインストールされた正確なbinディレクトリ
-ENV BUNDLE_BIN="/rails/vendor/bundle/ruby/3.3.0/bin"
-# Gemのネイティブ拡張ファイル（.so）が存在するディレクトリ
-ENV GEM_EXT_DIR="/rails/vendor/bundle/ruby/3.3.0/extensions/x86_64-linux" 
-
-ENV BUNDLE_PATH="/rails/vendor/bundle"
-ENV GEM_HOME="${BUNDLE_PATH}"
-# PATHを強化して、Gemの実行ファイル（bin stubs）を見つけられるようにします
-ENV PATH="${BUNDLE_BIN}:${PATH}"
-# 動的リンカーにネイティブ拡張の場所を強制的に教えます
-ENV LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}"
-
+# ★★★ 修正: 環境変数の設定はエントリーポイントに任せるため、ここでは不要です ★★★
+# BUNDLE_PATH や GEM_HOME の ENV は削除しました。
 
 # 非ルートユーザーの作成と設定
 ARG USER_UID=1000
@@ -124,6 +114,7 @@ RUN groupadd --system --gid ${GROUP_UID} rails && \
 USER rails
 
 # ENTRYPOINTとCMDの設定
+# ENTRYPOINTで環境変数を設定し、CMDをその後に実行させます
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]

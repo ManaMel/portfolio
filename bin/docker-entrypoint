@@ -1,13 +1,62 @@
 #!/bin/bash -e
 
+# =================================================================
+# 1. 初期設定 (元のロジック)
+# =================================================================
+
 # Enable jemalloc for reduced memory usage and latency.
 if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
   export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
 fi
+
+
+# =================================================================
+# 2. 【重要】Bundlerのパスを強制的に設定 (GemNotFound対策)
+#    - Rubyのバージョンディレクトリを動的に見つけ、PATHを設定します。
+# =================================================================
+
+# /rails/vendor/bundle/ruby/ にある最初のディレクトリを取得 (例: 3.3.0)
+RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;)
+
+if [ -z "$RUBY_VERSION_DIR" ]; then
+    echo "Error: Could not find Ruby version directory in /rails/vendor/bundle/ruby."
+    # GemNotFoundの原因特定のため、ディレクトリ構造を表示
+    ls -lR /rails/vendor/bundle
+    exit 1
+fi
+
+# Gemがインストールされた正確なパスを設定
+GEM_HOME="/rails/vendor/bundle"
+BUNDLE_PATH="${GEM_HOME}"
+GEM_BIN_DIR="${GEM_HOME}/ruby/${RUBY_VERSION_DIR}/bin"
+GEM_EXT_DIR="${GEM_HOME}/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux"
+
+# 環境変数をエクスポート
+# PATHにGemの実行ファイルディレクトリを追加
+export PATH="${GEM_BIN_DIR}:${PATH}"
+# ネイティブ拡張 (.so ファイル) の場所を動的リンカーに通知
+export LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}"
+export GEM_HOME="${GEM_HOME}"
+export BUNDLE_PATH="${BUNDLE_PATH}"
+
+echo "--- Dynamic Bundler Environment Setup Complete ---"
+echo "PATH starts with: ${GEM_BIN_DIR}"
+echo "LD_LIBRARY_PATH starts with: ${GEM_EXT_DIR}"
+echo "------------------------------------------------"
+
+
+# =================================================================
+# 3. DBの準備 (元のロジック)
+#    - パスが設定されたため、ここで './bin/rails db:prepare' を実行しても問題ありません。
+# =================================================================
 
 # If running the rails server then create or migrate existing database
 if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
   ./bin/rails db:prepare
 fi
 
+
+# =================================================================
+# 4. 最終的なコマンドを実行
+# =================================================================
 exec "${@}"
