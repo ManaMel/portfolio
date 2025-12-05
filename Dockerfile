@@ -26,6 +26,8 @@ RUN apt-get update -qq && \
     ca-certificates curl gnupg dirmngr wget \
     tzdata \
     procps \
+    # 【重要】動的リンク設定を更新
+    && ldconfig \
     && rm -rf /var/lib/apt/lists/*
     
 # =================================================================
@@ -72,21 +74,22 @@ RUN rm -rf tmp/cache
 COPY database.yml.build config/database.yml 
 
 # ----------------------------------------------------------------
-# 【重要修正】アセットプリコンパイルのRUNコマンドを単一に結合
-# 環境変数の設定とアセットプリコンパイルを同じシェルコンテキストで実行します。
+# 【重要修正】アセットプリコンパイルのRUNコマンドを単一に結合し、Rakeを直接実行
 # ----------------------------------------------------------------
 # 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
 RUN yarn build && \
     yarn build:css
 
-# 2. 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
-RUN ldconfig
-
-# 3. 【最終】アセットプリコンパイル
+# 2. 【最重要】アセットプリコンパイル
 RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
-    GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux" && \
+    # 拡張ディレクトリの正確なパスを見つける（バージョン固有のハッシュディレクトリに対応）
+    GEM_EXT_DIR=$(find /rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux -maxdepth 1 -mindepth 1 -type d | head -n 1) && \
+    if [ -z "$GEM_EXT_DIR" ]; then GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux"; fi && \
+    echo "LD_LIBRARY_PATH set to: ${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" && \
     # LD_LIBRARY_PATHを設定し、そのコンテキストでプリコンパイルを実行
-    LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
+    LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true \
+    # bundle exec の代わりに、vendor/bundle内のrakeバイナリを直接叩くことでパスを強制
+    /rails/vendor/bundle/bin/rake assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2) 
@@ -121,4 +124,4 @@ USER rails
 # ENTRYPOINTで環境変数を設定し、CMDをその後に実行させます
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
+CMD ["puma", "-C", "config/puma.rb"]
