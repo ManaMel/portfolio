@@ -70,10 +70,17 @@ RUN rm -rf tmp/cache
 # 【DB接続回避策】ダミーファイルをコピー
 COPY database.yml.build config/database.yml 
 
-# 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
+# ★★★ 修正箇所: assets:precompile の前に Node のビルドを明示的に実行 ★★★
+
+# 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
+# このコマンドは package.json の scripts で定義されているビルドコマンドを叩きます
+RUN yarn build
+RUN yarn build:css
+
+# 2. 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
 RUN ldconfig
 
-# 【重要】アセットプリコンパイル
+# 3. 【重要】アセットプリコンパイル (Manifestファイルなどを生成)
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
