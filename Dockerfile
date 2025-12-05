@@ -5,7 +5,7 @@
 # =================================================================
 FROM ruby:3.3.0-slim AS base
 
-# ... (ENV設定は省略)
+# 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -14,18 +14,19 @@ ENV RAILS_ENV=production \
     # タイムゾーン設定
     TZ=Asia/Tokyo
 
-# 必要なシステムパッケージのインストール (前回修正済み)
+# 必要なシステムパッケージのインストール
+# C拡張のビルドに必要なツールを全てインストール (これを「build」環境とする)
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
-    # C拡張のビルドに必要なツール
     build-essential \
     libssl-dev \
     zlib1g-dev \
     libyaml-dev \
     libpq-dev \
-    # Node/Yarnのセットアップに必要な基本ツール
     ca-certificates curl gnupg dirmngr wget \
     tzdata \
+    # 【追加】標準ライブラリのビルドに必要なその他のランタイム/ビルドツール
+    procps \
     && rm -rf /var/lib/apt/lists/*
     
 # =================================================================
@@ -35,8 +36,8 @@ FROM base AS build
 
 # 【重要：作業ディレクトリの明示的な設定とクリーンアップ】
 WORKDIR /rails
-# 作業ディレクトリを明示的にクリーンアップ（コピーエラー対策）
 RUN rm -rf ./*
+
 # -------------------------------------------------------------
 # Node.js/Yarnのインストール
 # -------------------------------------------------------------
@@ -54,20 +55,11 @@ RUN apt-get update -qq && \
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
-# 必要なBundlerバージョンを明示的にインストール
 RUN gem install bundler --version "~> 2.6" --no-document
-
-# ====================================================================
-# 修正: C拡張のビルドフラグを明示的に設定
-# psych (YAML) のビルドフラグを設定
 RUN bundle config build.psych --with-yaml-dir=/usr/lib/x86_64-linux-gnu/
-# date のビルドフラグを設定 (念のため)
 RUN bundle config build.date --with-ext-dir=ext/date
-# ====================================================================
 
-# Gemのインストール
 RUN bundle install --jobs 4 --retry 3
-# C拡張ビルドを確実に反映させるためのクリーンアップ
 RUN bundle clean --force
 
 # 2. JSパッケージのインストール
@@ -76,31 +68,36 @@ RUN yarn install --frozen-lockfile
 
 # 3. アプリケーションコードのコピー
 COPY . .
-
-# 【重要：キャッシュクリア】
+RUN chmod +x bin/rails
 RUN rm -rf tmp/cache
 
-# 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
 COPY database.yml.build config/database.yml 
 
 # 【重要】アセットプリコンパイル
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
-# FINAL STAGE: 実行環境 (ステージ 2)
+# FINAL STAGE: 実行環境 (ステージ 2) - buildステージをベースにする
 # =================================================================
-FROM base 
+FROM build AS final # ★★★ ベースを build ステージに変更 ★★★
 
-# Build Stageから必要なファイル (Vendor bundleとプリコンパイル済みアセット) のみをコピー
-COPY --from=build /rails /rails
-# Node実行バイナリをコピー
-COPY --from=build /usr/bin/node /usr/bin/node
-# Node環境一式をコピー (必須)
-COPY --from=build /usr/local/node /usr/local/node
+# 【重要】ビルドツールを削除してイメージを軽量化
+RUN apt-get purge -y --auto-remove \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libyaml-dev \
+    wget \
+    gnupg \
+    dirmngr \
+    procps \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 非ルートユーザーの作成と設定
-RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+ARG USER_UID=1000
+ARG GROUP_UID=1000
+RUN groupadd --system --gid ${GROUP_UID} rails && \
+    useradd rails --uid ${USER_UID} --gid ${GROUP_UID} --create-home --shell /bin/bash && \
     chown -R rails:rails /rails
 USER rails
 
