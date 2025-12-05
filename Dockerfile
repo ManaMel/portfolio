@@ -72,26 +72,21 @@ RUN rm -rf tmp/cache
 COPY database.yml.build config/database.yml 
 
 # ----------------------------------------------------------------
-# 【重要修正】アセットプリコンパイルに失敗する問題の解決
-# ビルドステージでネイティブ拡張がロードできるようにLD_LIBRARY_PATHを設定します。
+# 【重要修正】アセットプリコンパイルのRUNコマンドを単一に結合
+# 環境変数の設定とアセットプリコンパイルを同じシェルコンテキストで実行します。
 # ----------------------------------------------------------------
-# Rubyのバージョンディレクトリを動的に取得し、ネイティブ拡張の場所を特定
-RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
-    GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux" && \
-    # LD_LIBRARY_PATHに設定
-    export LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" && \
-    echo "LD_LIBRARY_PATH set for assets:precompile: ${LD_LIBRARY_PATH}"
-
 # 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
-RUN yarn build
-RUN yarn build:css
+RUN yarn build && \
+    yarn build:css
 
 # 2. 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
 RUN ldconfig
 
-# 3. 【重要】アセットプリコンパイル (Manifestファイルなどを生成)
-# LD_LIBRARY_PATHがこのRUNコマンドに引き継がれる
-RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
+# 3. 【最終】アセットプリコンパイル
+RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
+    GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux" && \
+    # LD_LIBRARY_PATHを設定し、そのコンテキストでプリコンパイルを実行
+    LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2) 
