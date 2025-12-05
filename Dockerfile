@@ -79,7 +79,7 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2) - buildステージをベースにする
 # =================================================================
-FROM build AS final # ★★★ ベースを build ステージに変更 ★★★
+FROM build
 
 # 【重要】ビルドツールを削除してイメージを軽量化
 RUN apt-get purge -y --auto-remove \
