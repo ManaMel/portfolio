@@ -71,6 +71,17 @@ RUN rm -rf tmp/cache
 # 【DB接続回避策】ダミーファイルをコピー
 COPY database.yml.build config/database.yml 
 
+# ----------------------------------------------------------------
+# 【重要修正】アセットプリコンパイルに失敗する問題の解決
+# ビルドステージでネイティブ拡張がロードできるようにLD_LIBRARY_PATHを設定します。
+# ----------------------------------------------------------------
+# Rubyのバージョンディレクトリを動的に取得し、ネイティブ拡張の場所を特定
+RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
+    GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux" && \
+    # LD_LIBRARY_PATHに設定
+    export LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" && \
+    echo "LD_LIBRARY_PATH set for assets:precompile: ${LD_LIBRARY_PATH}"
+
 # 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
 RUN yarn build
 RUN yarn build:css
@@ -79,6 +90,7 @@ RUN yarn build:css
 RUN ldconfig
 
 # 3. 【重要】アセットプリコンパイル (Manifestファイルなどを生成)
+# LD_LIBRARY_PATHがこのRUNコマンドに引き継がれる
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
 # =================================================================
@@ -101,9 +113,6 @@ RUN apt-get purge -y --auto-remove \
 # 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
-
-# ★★★ 修正: 環境変数の設定はエントリーポイントに任せるため、ここでは不要です ★★★
-# BUNDLE_PATH や GEM_HOME の ENV は削除しました。
 
 # 非ルートユーザーの作成と設定
 ARG USER_UID=1000
