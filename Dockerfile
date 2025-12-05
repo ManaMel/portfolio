@@ -98,12 +98,18 @@ RUN apt-get purge -y --auto-remove \
     wget \
     gnupg \
     dirmngr \
-    procps \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
+    
 # 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
+# BUNDLE_PATH (/usr/local/bundle) をコピー
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+# アプリケーションコードをコピー
 COPY --from=build /rails /rails
+
+# ★★★ 追記：ネイティブ拡張の実行に必要な動的ライブラリがキャッシュされている可能性があるパスをコピーします ★★★
+# Render環境では /usr/local/bundle 以外のパスに Gem がインストールされる可能性があるため、
+# Dockerfile で指定した BUNDLE_PATH が正しく参照されるよう、環境変数を再設定します。
+ENV BUNDLE_PATH="/usr/local/bundle"
+ENV GEM_HOME="${BUNDLE_PATH}"
 
 # 非ルートユーザーの作成と設定
 ARG USER_UID=1000
