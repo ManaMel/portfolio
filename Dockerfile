@@ -8,9 +8,9 @@ FROM ruby:3.3.0-slim AS base
 # 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
-    # ★★★ 修正: Gemのインストールパスを /rails/vendor/bundle に変更します ★★★
     BUNDLE_PATH="/rails/vendor/bundle" \
     BUNDLE_WITHOUT="development" \
+    # PATHに /rails/vendor/bundle/ruby/.../bin を含めるため、ここでは一旦簡略化
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
     # タイムゾーン設定
     TZ=Asia/Tokyo
@@ -86,7 +86,6 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 FROM base
 
 # 【重要】ビルドツールを削除してイメージを軽量化
-# ★★★ 修正: apt-get purge の後に \ や COPY コマンドが続かないように分離します ★★★
 RUN apt-get purge -y --auto-remove \
     build-essential \
     libssl-dev \
@@ -99,15 +98,22 @@ RUN apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
-# BUNDLE_PATH (/rails/vendor/bundle) をコピー
-# このCOPYは、一つ上のRUNコマンドが正しく終了した後で実行されます。
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
-# アプリケーションコードをコピー
 COPY --from=build /rails /rails
 
-# Gemのパスが /rails/vendor/bundle に移動したため、環境変数を再設定します。
+# ★★★ 最終調整: BUNDLE_PATHとネイティブ拡張の参照パスを強制的に設定 ★★★
+# Gemがインストールされた正確なbinディレクトリ
+ENV BUNDLE_BIN="/rails/vendor/bundle/ruby/3.3.0/bin"
+# Gemのネイティブ拡張ファイル（.so）が存在するディレクトリ
+ENV GEM_EXT_DIR="/rails/vendor/bundle/ruby/3.3.0/extensions/x86_64-linux" 
+
 ENV BUNDLE_PATH="/rails/vendor/bundle"
 ENV GEM_HOME="${BUNDLE_PATH}"
+# PATHを強化して、Gemの実行ファイル（bin stubs）を見つけられるようにします
+ENV PATH="${BUNDLE_BIN}:${PATH}"
+# 動的リンカーにネイティブ拡張の場所を強制的に教えます
+ENV LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}"
+
 
 # 非ルートユーザーの作成と設定
 ARG USER_UID=1000
