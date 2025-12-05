@@ -5,7 +5,7 @@
 # =================================================================
 FROM ruby:3.3.0-slim AS base
 
-# ... (ENV設定は省略)
+# 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/rails/vendor/bundle" \
@@ -14,15 +14,19 @@ ENV RAILS_ENV=production \
     # タイムゾーン設定
     TZ=Asia/Tokyo
 
-# 必要なシステムパッケージのインストール (前回修正済み)
+# 必要なシステムパッケージのインストール
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
+    # C拡張のビルドに必要なツール
     build-essential \
     libssl-dev \
     zlib1g-dev \
     libyaml-dev \
     libpq-dev \
+    # Node/Yarnのセットアップに必要な基本ツール
     ca-certificates curl gnupg dirmngr wget \
+    # 【追加】タイムゾーンデータ（一部環境で必要）
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
     
 # =================================================================
@@ -32,7 +36,7 @@ FROM base AS build
 
 # 【重要：作業ディレクトリの明示的な設定とクリーンアップ】
 WORKDIR /rails
-# 作業ディレクトリを明示的にクリーンアップ（問題のある bin ファイルなどが残っていないか確認）
+# 作業ディレクトリを明示的にクリーンアップ（コピーエラー対策）
 RUN rm -rf ./*
 # -------------------------------------------------------------
 # Node.js/Yarnのインストール
@@ -51,12 +55,14 @@ RUN apt-get update -qq && \
 
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
-# ====================================================================
 # 必要なBundlerバージョンを明示的にインストール
-# Gemfile.lockが要求するバージョンのBundlerをインストール
 RUN gem install bundler --version "~> 2.6" --no-document
-# ====================================================================
+# Gemのインストール
 RUN bundle install --jobs 4 --retry 3
+# ====================================================================
+# ★★★ 追加修正: C拡張ビルドを確実に反映させるためのクリーンアップ ★★★
+RUN bundle clean --force
+# ====================================================================
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
