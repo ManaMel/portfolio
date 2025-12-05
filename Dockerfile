@@ -8,14 +8,14 @@ FROM ruby:3.3.0-slim AS base
 # 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
-    BUNDLE_PATH="/rails/vendor/bundle" \
+    # ★★★ BUNDLE_PATHを標準的なパスに統一（vendorの使用を回避）★★★
+    BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development" \
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
     # タイムゾーン設定
     TZ=Asia/Tokyo
 
 # 必要なシステムパッケージのインストール
-# C拡張のビルドに必要なツールを全てインストール (これを「build」環境とする)
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -23,9 +23,9 @@ RUN apt-get update -qq && \
     zlib1g-dev \
     libyaml-dev \
     libpq-dev \
+    libffi-dev \
     ca-certificates curl gnupg dirmngr wget \
     tzdata \
-    # 【追加】標準ライブラリのビルドに必要なその他のランタイム/ビルドツール
     procps \
     && rm -rf /var/lib/apt/lists/*
     
@@ -34,18 +34,17 @@ RUN apt-get update -qq && \
 # =================================================================
 FROM base AS build 
 
-# 【重要：作業ディレクトリの明示的な設定とクリーンアップ】
 WORKDIR /rails
 RUN rm -rf ./*
 
 # -------------------------------------------------------------
-# Node.js/Yarnのインストール
+# Node.js/Yarnのインストール (APT方式は維持)
 # -------------------------------------------------------------
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     NODE_MAJOR=20 && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-    wget --quiet -O - /tmp/pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    wget --quiet -O - https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
 # nodejsとyarnのインストールとAPTキャッシュの削除
@@ -56,9 +55,6 @@ RUN apt-get update -qq && \
 # 1. Gemのインストール
 COPY Gemfile Gemfile.lock ./
 RUN gem install bundler --version "~> 2.6" --no-document
-RUN bundle config build.psych --with-yaml-dir=/usr/lib/x86_64-linux-gnu/
-RUN bundle config build.date --with-ext-dir=ext/date
-
 RUN bundle install --jobs 4 --retry 3
 RUN bundle clean --force
 
@@ -71,19 +67,19 @@ COPY . .
 RUN chmod +x bin/rails
 RUN rm -rf tmp/cache
 
-# ====================================================================
-# ★★★ 修正: DB接続回避策を RUN コマンドの直前で確実に実行する ★★★
-# RUN コマンドで直接ファイルを上書きします
-# ====================================================================
-# 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
-RUN cp database.yml.build config/database.yml
+# 【DB接続回避策】ダミーファイルをコピー
+COPY database.yml.build config/database.yml 
+
+# 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
+RUN ldconfig
 
 # 【重要】アセットプリコンパイル
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
+
 # =================================================================
-# FINAL STAGE: 実行環境 (ステージ 2) - buildステージをベースにする
+# FINAL STAGE: 実行環境 (ステージ 2) 
 # =================================================================
-FROM build
+FROM base
 
 # 【重要】ビルドツールを削除してイメージを軽量化
 RUN apt-get purge -y --auto-remove \
@@ -91,11 +87,16 @@ RUN apt-get purge -y --auto-remove \
     libssl-dev \
     zlib1g-dev \
     libyaml-dev \
+    libffi-dev \
     wget \
     gnupg \
     dirmngr \
     procps \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
+COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+COPY --from=build /rails /rails
 
 # 非ルートユーザーの作成と設定
 ARG USER_UID=1000
