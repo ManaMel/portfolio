@@ -71,11 +71,15 @@ COPY . .
 RUN chmod +x bin/rails
 RUN rm -rf tmp/cache
 
-COPY database.yml.build config/database.yml 
+# ====================================================================
+# ★★★ 修正: DB接続回避策を RUN コマンドの直前で確実に実行する ★★★
+# RUN コマンドで直接ファイルを上書きします
+# ====================================================================
+# 【DB接続回避策】ビルドステージで一時的にダミーのdatabase.ymlを使用
+RUN cp database.yml.build config/database.yml
 
 # 【重要】アセットプリコンパイル
 RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
-
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2) - buildステージをベースにする
 # =================================================================
