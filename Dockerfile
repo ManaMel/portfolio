@@ -8,7 +8,8 @@ FROM ruby:3.3.0-slim AS base
 # 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
-    BUNDLE_PATH="/usr/local/bundle" \
+    # ★★★ 修正: Gemのインストールパスを /rails/vendor/bundle に変更します ★★★
+    BUNDLE_PATH="/rails/vendor/bundle" \
     BUNDLE_WITHOUT="development" \
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
     # タイムゾーン設定
@@ -56,7 +57,6 @@ RUN apt-get update -qq && \
 COPY Gemfile Gemfile.lock ./
 RUN gem install bundler --version "~> 2.6" --no-document
 RUN bundle install --jobs 4 --retry 3
-# ★★★ 修正: bundle clean --force を削除 ★★★
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
@@ -70,10 +70,7 @@ RUN rm -rf tmp/cache
 # 【DB接続回避策】ダミーファイルをコピー
 COPY database.yml.build config/database.yml 
 
-# ★★★ 修正箇所: assets:precompile の前に Node のビルドを明示的に実行 ★★★
-
 # 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
-# このコマンドは package.json の scripts で定義されているビルドコマンドを叩きます
 RUN yarn build
 RUN yarn build:css
 
@@ -89,6 +86,7 @@ RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/ra
 FROM base
 
 # 【重要】ビルドツールを削除してイメージを軽量化
+# ★★★ 修正: apt-get purge の後に \ や COPY コマンドが続かないように分離します ★★★
 RUN apt-get purge -y --auto-remove \
     build-essential \
     libssl-dev \
@@ -98,17 +96,17 @@ RUN apt-get purge -y --auto-remove \
     wget \
     gnupg \
     dirmngr \
-    
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
-# BUNDLE_PATH (/usr/local/bundle) をコピー
+# BUNDLE_PATH (/rails/vendor/bundle) をコピー
+# このCOPYは、一つ上のRUNコマンドが正しく終了した後で実行されます。
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 # アプリケーションコードをコピー
 COPY --from=build /rails /rails
 
-# ★★★ 追記：ネイティブ拡張の実行に必要な動的ライブラリがキャッシュされている可能性があるパスをコピーします ★★★
-# Render環境では /usr/local/bundle 以外のパスに Gem がインストールされる可能性があるため、
-# Dockerfile で指定した BUNDLE_PATH が正しく参照されるよう、環境変数を再設定します。
-ENV BUNDLE_PATH="/usr/local/bundle"
+# Gemのパスが /rails/vendor/bundle に移動したため、環境変数を再設定します。
+ENV BUNDLE_PATH="/rails/vendor/bundle"
 ENV GEM_HOME="${BUNDLE_PATH}"
 
 # 非ルートユーザーの作成と設定
