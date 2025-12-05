@@ -1,79 +1,114 @@
-source "https://rubygems.org"
+# syntax=docker/dockerfile:1
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.2.2", ">= 7.2.2.1"
-# The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
-gem "sprockets-rails"
-# Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
-# Use the Puma web server [https://github.com/puma/puma]
-gem "puma", ">= 5.0"
-# Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
-gem "jsbundling-rails"
-# Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
-gem "turbo-rails"
-# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
-gem "stimulus-rails"
-# Bundle and process CSS [https://github.com/rails/cssbundling-rails]
-gem "cssbundling-rails"
-# Build JSON APIs with ease [https://github.com/rails/jbuilder]
-gem "jbuilder"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+# =================================================================
+# BASE STAGE: 基本環境のセットアップ (ステージ 0)
+# =================================================================
+FROM ruby:3.3.0-slim AS base
 
-# Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
-# gem "kredis"
+# 環境変数の設定 (本番環境用の設定)
+ENV RAILS_ENV=production \
+    BUNDLE_DEPLOYMENT=1 \
+    BUNDLE_PATH="/usr/local/bundle" \
+    # ★★★ 修正: BUNDLE_WITHOUT="development" を削除し、ビルドステージで全てのGemを確実に利用可能にする ★★★
+    PATH="/rails/bin:/usr/local/node/bin:$PATH" \
+    # タイムゾーン設定
+    TZ=Asia/Tokyo
 
-# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+# 必要なシステムパッケージのインストール
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libyaml-dev \
+    libpq-dev \
+    libffi-dev \
+    ca-certificates curl gnupg dirmngr wget \
+    tzdata \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+    
+# =================================================================
+# BUILD STAGE: アプリケーションのビルドと依存関係のインストール (ステージ 1)
+# =================================================================
+FROM base AS build 
 
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+# 【重要：作業ディレクトリの明示的な設定とクリーンアップ】
+WORKDIR /rails
+RUN rm -rf ./*
 
-# Reduces boot times through caching; required in config/boot.rb
-# gem "bootsnap", require: false
+# -------------------------------------------------------------
+# Node.js/Yarnのインストール (APT方式は維持)
+# -------------------------------------------------------------
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    NODE_MAJOR=20 && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    wget --quiet -O - https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
+# nodejsとyarnのインストールとAPTキャッシュの削除
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y nodejs yarn python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
 
-gem "devise"
+# 1. Gemのインストール
+# BUNDLE_WITHOUTが設定されていないため、全てのGem（development, testを含む）が/usr/local/bundleにインストールされる
+COPY Gemfile Gemfile.lock ./
+RUN gem install bundler --version "~> 2.6" --no-document
+RUN bundle install --jobs 4 --retry 3
 
-gem "google-apis-youtube_v3"
+# 2. JSパッケージのインストール
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-gem "rails-i18n", "~> 7.0.0"
+# 3. アプリケーションコードのコピー
+COPY . .
+RUN chmod +x bin/rails
+RUN rm -rf tmp/cache
 
-gem "devise-i18n"
+# 【DB接続回避策】ダミーファイルをコピー
+COPY database.yml.build config/database.yml 
 
-# Background Job
-gem "redis"
+# 共有ライブラリのパスを更新し、C拡張が正しくリンクされることを保証
+RUN ldconfig
 
-gem "sidekiq"
+# 【重要】アセットプリコンパイル
+# すべてのGemがインストールされているため、assets:precompileがsass Gemを見つけて実行できる
+RUN RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true ./bin/rails assets:precompile
 
-gem 'aws-sdk-s3', require: false
+# =================================================================
+# FINAL STAGE: 実行環境 (ステージ 2) 
+# =================================================================
+FROM base
 
-group :development, :test do
-  # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+# 【重要】ビルドツールを削除してイメージを軽量化
+RUN apt-get purge -y --auto-remove \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libyaml-dev \
+    libffi-dev \
+    wget \
+    gnupg \
+    dirmngr \
+    procps \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-  # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", require: false
+# 最終ステージで Gem (BUNDLE_PATH) とアプリケーションコードをコピー
+COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+COPY --from=build /rails /rails
 
-  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
-  gem "rubocop-rails-omakase", require: false
-  gem "rubocop", require: false
-  gem "rubocop-rails", require: false
-end
+# 非ルートユーザーの作成と設定
+ARG USER_UID=1000
+ARG GROUP_UID=1000
+RUN groupadd --system --gid ${GROUP_UID} rails && \
+    useradd rails --uid ${USER_UID} --gid ${GROUP_UID} --create-home --shell /bin/bash && \
+    chown -R rails:rails /rails
+USER rails
 
-group :development do
-  # Use console on exceptions pages [https://github.com/rails/web-console]
-  gem "web-console"
-  gem "dotenv-rails"
-  gem "pry-rails"
-  gem "pry-byebug"
-end
-
-group :test do
-  # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-  gem "capybara"
-  gem "selenium-webdriver"
-end
+# ENTRYPOINTとCMDの設定
+ENTRYPOINT ["/rails/bin/docker-entrypoint"]
+EXPOSE 3000
+# FINAL STAGEでは環境変数がproductionなので、development/test Gemはロードされない。
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
