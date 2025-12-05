@@ -8,7 +8,6 @@ FROM ruby:3.3.0-slim AS base
 # 環境変数の設定 (本番環境用の設定)
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
-    # ★★★ BUNDLE_PATHを標準的なパスに統一（vendorの使用を回避）★★★
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development" \
     PATH="/rails/bin:/usr/local/node/bin:$PATH" \
@@ -34,6 +33,7 @@ RUN apt-get update -qq && \
 # =================================================================
 FROM base AS build 
 
+# 【重要：作業ディレクトリの明示的な設定とクリーンアップ】
 WORKDIR /rails
 RUN rm -rf ./*
 
@@ -56,7 +56,7 @@ RUN apt-get update -qq && \
 COPY Gemfile Gemfile.lock ./
 RUN gem install bundler --version "~> 2.6" --no-document
 RUN bundle install --jobs 4 --retry 3
-RUN bundle clean --force
+# ★★★ 修正: bundle clean --force を削除 ★★★
 
 # 2. JSパッケージのインストール
 COPY package.json yarn.lock ./
