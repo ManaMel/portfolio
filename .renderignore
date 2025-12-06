@@ -1,0 +1,3 @@
+Dockerfile
+database.yml.build
+bin/docker-entrypoint
