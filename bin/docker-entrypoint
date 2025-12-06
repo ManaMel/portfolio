@@ -12,10 +12,10 @@ RUBY_VERSION_DIR=$(find "${GEM_BASE_DIR}" -maxdepth 1 -mindepth 1 -type d -name 
 
 if [ -z "$RUBY_VERSION_DIR" ]; then
     echo "--- FATAL ERROR: Ruby version directory not found in ${GEM_BASE_DIR}! ---"
-    exit 1  # 起動を停止
+    exit 1
 fi
 
-# Gemの実行バイナリ (puma, sidekiq, rails) があるディレクトリ
+# 【最重要】実行バイナリのパス (Puma, Sidekiqなどが入っている場所)
 GEM_BIN_DIR="${GEM_BASE_DIR}/${RUBY_VERSION_DIR}/bin"
 
 # ネイティブ拡張 (.so ファイル) の場所を検索
@@ -28,13 +28,8 @@ if [ -z "$GEM_EXT_DIR" ]; then
     GEM_EXT_DIR="${GEM_EXT_BASE_DIR}"
 fi
 
-# Gem Binariesディレクトリが存在するかチェック (puma: command not found の原因究明)
-if [ ! -d "$GEM_BIN_DIR" ]; then
-    echo "--- FATAL ERROR: Gem binary directory not found at ${GEM_BIN_DIR}! Cannot run Puma/Sidekiq. ---"
-    exit 1
-fi
-
 # 環境変数をエクスポート (PATHとLD_LIBRARY_PATHの設定が最重要)
+# 【修正】Puma/Sidekiqが見つからない問題を解消するため、PATHにバージョン固有のbinディレクトリを追加
 export PATH="${GEM_BIN_DIR}:${PATH}"
 export LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}"
 
@@ -43,9 +38,8 @@ export GEM_HOME="/rails/vendor/bundle"
 export BUNDLE_PATH="/rails/vendor/bundle"
 
 echo "--- Dynamic Bundler Environment Setup Complete ---"
-echo "GEM_BIN_DIR: ${GEM_BIN_DIR}"
+echo "GEM_BIN_DIR added to PATH: ${GEM_BIN_DIR}"
 echo "LD_LIBRARY_PATH starts with: ${GEM_EXT_DIR}"
-which ${1} 2>/dev/null || echo "CHECK: Command '${1}' status: $? (should be 0 for success)"
 echo "------------------------------------------------"
 
 
@@ -53,15 +47,11 @@ echo "------------------------------------------------"
 # 2. その他の初期化 (DBの準備など)
 # =================================================================
 
-# Enable jemalloc 
-if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
-  export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
-fi
-
 # DBの準備 (Web Serviceのみで実行される)
 if [ "${1}" == "puma" ]; then
   # pumaが起動する前に db:prepare を実行
-  /rails/vendor/bundle/bin/rake db:prepare
+  # 【修正】rakeもバージョン固有のパスから実行
+  "${GEM_BIN_DIR}/rake" db:prepare
 fi
 
 # =================================================================
@@ -69,4 +59,6 @@ fi
 # =================================================================
 
 # 環境変数が設定された状態で、CMDで渡されたコマンドを実行
+echo "Executing: ${@}"
+which "${1}" 2>/dev/null || echo "FATAL: Command '${1}' not found in PATH."
 exec "${@}"

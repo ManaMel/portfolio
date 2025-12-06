@@ -80,16 +80,19 @@ COPY database.yml.build config/database.yml
 RUN yarn build && \
     yarn build:css
 
-# 2. 【最重要】アセットプリコンパイル
+# 2. 【最重要修正】アセットプリコンパイル: versioned bin pathを使用
 RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
-    # 拡張ディレクトリの正確なパスを見つける（バージョン固有のハッシュディレクトリに対応）
+    # 拡張ディレクトリの正確なパスを見つける
     GEM_EXT_DIR=$(find /rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux -maxdepth 1 -mindepth 1 -type d | head -n 1) && \
     if [ -z "$GEM_EXT_DIR" ]; then GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux"; fi && \
+    
+    GEM_BIN_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/bin" && \
+    
     echo "LD_LIBRARY_PATH set to: ${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" && \
     # LD_LIBRARY_PATHを設定し、そのコンテキストでプリコンパイルを実行
     LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true \
-    # bundle exec の代わりに、vendor/bundle内のrakeバイナリを直接叩くことでパスを強制
-    /rails/vendor/bundle/bin/rake assets:precompile
+    # 【修正】bundle exec の代わりに、vendor/bundle/ruby/3.3.0/bin/rake バイナリを直接叩く
+    "${GEM_BIN_DIR}/rake" assets:precompile
 
 # =================================================================
 # FINAL STAGE: 実行環境 (ステージ 2) 
