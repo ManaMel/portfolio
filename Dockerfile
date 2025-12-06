@@ -74,24 +74,23 @@ RUN rm -rf tmp/cache
 COPY database.yml.build config/database.yml 
 
 # ----------------------------------------------------------------
-# 【重要修正】アセットプリコンパイルのRUNコマンドを単一に結合し、Rakeを直接実行
+# 【最終修正】アセットプリコンパイルのRUNコマンドを単一に結合し、Rakeを直接実行
 # ----------------------------------------------------------------
 # 1. CSS/JSのビルドを実行 (Tailwind CSS の生成)
 RUN yarn build && \
     yarn build:css
 
-# 2. 【最重要修正】アセットプリコンパイル: versioned bin pathを使用
-RUN RUBY_VERSION_DIR=$(find /rails/vendor/bundle/ruby -maxdepth 1 -mindepth 1 -type d -name "3.*" -exec basename {} \;) && \
-    # 拡張ディレクトリの正確なパスを見つける
-    GEM_EXT_DIR=$(find /rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux -maxdepth 1 -mindepth 1 -type d | head -n 1) && \
-    if [ -z "$GEM_EXT_DIR" ]; then GEM_EXT_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/extensions/x86_64-linux"; fi && \
-    
-    GEM_BIN_DIR="/rails/vendor/bundle/ruby/${RUBY_VERSION_DIR}/bin" && \
+# 2. 【最重要修正】アセットプリコンパイル: 静的パスを使用
+RUN GEM_BIN_DIR="/rails/vendor/bundle/ruby/3.3.0/bin" && \
+    # 拡張ディレクトリのパス (ハッシュ名があるかもしれないため、引き続きfindを使用)
+    GEM_EXT_BASE_DIR="/rails/vendor/bundle/ruby/3.3.0/extensions/x86_64-linux" && \
+    GEM_EXT_DIR=$(find "${GEM_EXT_BASE_DIR}" -maxdepth 1 -mindepth 1 -type d | head -n 1) && \
+    if [ -z "$GEM_EXT_DIR" ]; then GEM_EXT_DIR="${GEM_EXT_BASE_DIR}"; fi && \
     
     echo "LD_LIBRARY_PATH set to: ${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" && \
     # LD_LIBRARY_PATHを設定し、そのコンテキストでプリコンパイルを実行
     LD_LIBRARY_PATH="${GEM_EXT_DIR}:${LD_LIBRARY_PATH}" RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 SKIP_REDIS_CONFIG=true \
-    # 【修正】bundle exec の代わりに、vendor/bundle/ruby/3.3.0/bin/rake バイナリを直接叩く
+    # 【修正】bundle exec の代わりに、静的パスでrakeバイナリを直接叩く
     "${GEM_BIN_DIR}/rake" assets:precompile
 
 # =================================================================
