@@ -99,6 +99,9 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  # 一時的にログレベルをDEBUGに設定し、AWS SDKの詳細な通信ログを出力させる。
+  config.log_level = :debug
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com
