@@ -23,9 +23,10 @@ Rails.application.configure do
   # Disable serving static files from `public/`, relying on NGINX/Apache to do so instead.
   # config.public_file_server.enabled = false
   # config/environments/production.rb
-  config.public_file_server.enabled = true
+  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
 
-  # Compress CSS using a preprocessor.
+  # ★★★ 修正: 以下の2行を削除またはコメントアウトします。Sassのロードを強制的に停止します。
+  # config.assets.css_compressor = :sass
   # config.assets.css_compressor = :sass
 
   # Do not fall back to assets pipeline if a precompiled asset is missed.
@@ -39,7 +40,7 @@ Rails.application.configure do
   # config.action_dispatch.x_sendfile_header = "X-Accel-Redirect" # for NGINX
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # config.active_storage.service = :local
 
   # Mount Action Cable outside main process or domain.
   # config.action_cable.mount_path = nil
@@ -73,7 +74,6 @@ Rails.application.configure do
   # config.cache_store = :mem_cache_store
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
-  # config.active_job.queue_adapter = :resque
   # config.active_job.queue_name_prefix = "myapp_production"
 
   # Disable caching for Action Mailer templates even if Action Controller
@@ -98,6 +98,8 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
+  config.active_storage.service = :amazon
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [

@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   db:
     image: postgres:16
@@ -18,11 +19,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bash -c "bundle install && bundle exec rails db:prepare && rm -f tmp/pids/server.pid && ./bin/dev"
+    # === 修正箇所 ===
+    # 1. rm -f tmp/pids/server.pid: 前回終了時に残ったPIDファイルを削除し、Pumaの競合を防ぐ。
+    # 2. bin/rails db:migrate: 起動前にマイグレーションを実行し、最新のスキーマを適用する。
+    # 3. bin/dev: JS/CSS監視とPumaサーバーを起動する。
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:migrate && ./bin/dev"
+    # ================
     tty: true
     stdin_open: true
     volumes:
-      - .:/myapp
+      # Mac/Windows環境でのパフォーマンスとアクセス権のために :cached フラグを追加
+      - .:/myapp:cached
       - bundle_data:/usr/local/bundle:cached
       - node_modules:/myapp/node_modules
     environment:
@@ -31,7 +38,7 @@ services:
       - "3000:3000"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy # DBが完全に準備できるまで待つ
     env_file:
       - .env
   redis:

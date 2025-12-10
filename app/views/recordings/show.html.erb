@@ -1,0 +1,205 @@
+<%= render 'layouts/header' %>
+
+<% 
+  # Active StorageのURLを取得
+  original_audio_url = @recording.original_audio.attached? ? url_for(@recording.original_audio) : nil
+  accomp_audio_url = @recording.accompaniment.attached? ? url_for(@recording.accompaniment) : nil
+  
+  # 初期値（秒単位）
+  initial_delay_seconds = @recording.recording_delay.presence || 0.0
+  initial_vocal_gain = @recording.vocal_gain.presence || 0.5
+%>
+
+<div class="space-y-8 p-6 max-w-2xl mx-auto text-gray-800">
+
+  <h1 class="font-bold text-3xl text-center text-indigo-700">🎤 <%= @recording.title %> 🎧</h1>
+
+  <%# Flash メッセージ %>
+  <% if notice %>
+    <div class="alert alert-success shadow-lg">
+      <div><span><%= notice %></span></div>
+    </div>
+  <% end %>
+
+  <% if alert %>
+    <div class="alert alert-error shadow-lg">
+      <div><span><%= alert %></span></div>
+    </div>
+  <% end %>
+  
+  <% if original_audio_url.nil? || accomp_audio_url.nil? %>
+    <div role="alert" class="alert alert-error shadow-lg">
+      <div>
+        <span>🚨 必要な音声ファイルが見つかりません。オリジナル録音または伴奏ファイルを確認してください。</span>
+      </div>
+    </div>
+    <%= link_to "マイページに戻る", mypage_path, class: "btn btn-outline btn-warning mt-4" %>
+    <% return %>
+  <% end %>
+
+  <%# ステータス表示 %>
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title">📊 ステータス</h2>
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">現在の状態:</span>
+        <span class="badge badge-lg <%= 
+          case @recording.status.to_sym
+          when :created then 'badge-info'
+          when :generating then 'badge-warning'
+          when :generated then 'badge-success'
+          when :failed then 'badge-error'
+          end
+        %>">
+          <%= 
+            case @recording.status.to_sym
+            when :created then '作成済み'
+            when :generating then '処理中'
+            when :generated then '完了'
+            when :failed then '失敗'
+            end
+          %>
+        </span>
+      </div>
+
+      <% if @recording.generating? %>
+        <div class="alert alert-info mt-4">
+          <div>
+            <span class="loading loading-spinner"></span>
+            <span>ミキシング処理中です。完了までしばらくお待ちください...</span>
+          </div>
+        </div>
+        <script>
+          setTimeout(() => location.reload(), 5000);
+        </script>
+      <% elsif @recording.failed? %>
+        <div class="alert alert-error mt-4">
+          <div>
+            <span>ミキシング処理に失敗しました</span>
+            <% if @recording.error_message.present? %>
+              <p class="text-sm mt-2"><%= @recording.error_message %></p>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ミキシング完了時：結果の再生 %>
+  <% if @recording.generated? && @recording.generated_audio.attached? %>
+    <div class="card bg-gradient-to-br from-green-50 to-blue-50 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-2xl">ミキシング完了！</h2>
+        <p class="text-gray-600 mb-4">録音と伴奏がミキシングされました。</p>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="font-bold text-lg mb-3">ミキシング結果</h3>
+          <audio controls class="w-full" preload="metadata">
+            <source src="<%= url_for(@recording.generated_audio) %>" type="audio/mpeg">
+            お使いのブラウザは音声再生に対応していません。
+          </audio>
+          
+          <div class="mt-4 flex justify-end space-x-2">
+            <%= link_to "ダウンロード", 
+                rails_blob_path(@recording.generated_audio, disposition: "attachment"), 
+                class: "btn btn-primary btn-sm" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# 調整とプレビュー（ミキシング結果がない場合のみ表示） %>
+  <% unless @recording.generated_audio.attached? %>
+    <%# TimingAdjuster用のdata属性コンテナ %>
+    <div 
+      data-timing-adjuster
+      data-original-url="<%= original_audio_url %>"
+      data-accomp-url="<%= accomp_audio_url %>"
+      data-initial-delay="<%= initial_delay_seconds %>"
+      data-initial-gain="<%= initial_vocal_gain %>"
+    ></div>
+    
+    <div class="card bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+      <h2 class="text-2xl font-bold mb-6 text-gray-700">調整とプレビュー</h2>
+      
+      <%# プレビュー再生ボタン %>
+      <div class="flex justify-center mb-6">
+        <button type="button" id="playPreviewButton" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50" disabled>
+          <span id="playButtonText">音声ファイルを読み込み中...</span>
+        </button>
+      </div>
+
+      <%# 調整値保存フォーム - mixアクションを使用 %>
+      <%= form_with(model: @recording, url: mix_recording_path(@recording), method: :post, local: true, html: { id: "timingAdjustmentForm" }) do |f| %>
+
+        <%# Hidden fields for JavaScript to update %>
+        <%= f.hidden_field :recording_delay, value: initial_delay_seconds, id: 'hidden_delay_field' %>
+        <%= f.hidden_field :vocal_gain, value: initial_vocal_gain, id: 'hidden_gain_field' %>
+
+        <%# ディレイ調整スライダー（秒単位） %>
+        <div class="mb-6">
+          <label for="delay-slider" class="block text-sm font-medium text-gray-700 mb-2">
+            ディレイ (時間調整): <span id="delay-value" class="font-bold text-indigo-600">
+              <%= '%.2f' % initial_delay_seconds %>
+            </span> 秒
+          </label>
+          
+          <input type="range" 
+                id="delay-slider"
+                min="-5" 
+                max="5" 
+                step="0.05" 
+                value="<%= initial_delay_seconds %>" 
+                class="w-full h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer range-lg transition duration-150 ease-in-out">
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
+            <span>-5秒 (早く開始)</span>
+            <span>+5秒 (遅く開始)</span>
+          </div>
+        </div>
+
+        <%# ボーカル音量調整スライダー %>
+        <div class="mb-8">
+          <label for="gain-slider" class="block text-sm font-medium text-gray-700 mb-2">
+            ボーカル音量比率: <span id="gain-value" class="font-bold text-indigo-600">
+              <%= '%.2f' % initial_vocal_gain %>
+            </span>
+          </label>
+          
+          <input type="range" 
+                id="gain-slider"
+                min="0.0" 
+                max="1.0" 
+                step="0.01" 
+                value="<%= initial_vocal_gain %>" 
+                class="w-full h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer range-lg transition duration-150 ease-in-out">
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0.0 (無音)</span>
+            <span>1.0 (最大)</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">※ 伴奏の音量は自動的に (1 - この値) で調整されます</p>
+        </div>
+
+        <%# ミキシング実行ボタン %>
+        <div class="space-y-4">
+          <%= f.submit '調整値を保存してミキシング開始', 
+                      class: "w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50", 
+                      data: { disable_with: "ミキシング処理中..." },
+                      id: "submit-mix-button" %>
+          
+          <%# デバッグ用：値の確認 %>
+          <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+            <p>現在の調整値:</p>
+            <p>Delay: <span id="current-delay-debug"><%= initial_delay_seconds %></span>秒</p>
+            <p>Gain: <span id="current-gain-debug"><%= initial_vocal_gain %></span></p>
+          </div>
+        </div>
+
+      <% end %>
+    </div>
+  <% end %>
+  
+  <div class="text-center">
+    <%= link_to "マイページに戻る", mypage_path, class: "btn btn-outline btn-warning mt-4" %>
+  </div>
+</div>

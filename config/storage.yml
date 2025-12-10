@@ -6,6 +6,18 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
+# Amazon S3 サービスの設定を追加
+amazon:
+  service: S3
+  access_key_id: <%= ENV["AWS_ACCESS_KEY_ID"] %>
+  secret_access_key: <%= ENV["AWS_SECRET_ACCESS_KEY"] %>
+  region: <%= ENV["AWS_REGION"] %>
+  bucket: <%= ENV["S3_BUCKET_NAME"] %>
+  # public: true # ユーザーに直接配信する場合はtrue
+
+production:
+  service: amazon  # production環境でS3を使うように設定
+
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:
 #   service: S3

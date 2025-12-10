@@ -47,7 +47,8 @@
       <label class="label">
         <span class="label-text font-semibold">タイトル</span>
       </label>
-      <input id="recording-title" type="text" placeholder="例：サビだけ録音 2025/01/01" class="input input-bordered w-full">
+      <!-- recording.jsで参照されるID: recording_title（ハイフンではなくアンダースコア） -->
+      <input id="recording_title" type="text" placeholder="例：サビだけ録音 2025/01/01" class="input input-bordered w-full">
     </div>
 
     <div class="mb-6">
@@ -59,8 +60,8 @@
       </div>
     </div>
 
+    <!-- recording.jsで参照されるID: save-recording-btn -->
     <button id="save-recording-btn" class="btn btn-primary btn-block" disabled>保存する</button>
-    <div id="save-status" class="mt-4 text-sm text-center"></div>
 
     <!-- マイページボタン -->
     <div class="mt-4 text-center">
@@ -95,43 +96,3 @@
   </div>
 
 </div>
-
-<script>
-document.getElementById("save-recording-btn").addEventListener("click", () => {
-  const title = document.getElementById("recording-title").value.trim();
-  const wavBlob = window.latestRecordingBlob;
-
-  if (!title) { alert("タイトルを入力してください"); return; }
-  if (!wavBlob) { alert("録音データがありません"); return; }
-
-  const formData = new FormData();
-  formData.append("recording[title]", title);
-  formData.append("recording[original_audio]", wavBlob, `${title}.wav`);
-
-  document.getElementById("save-status").innerText = "保存中...";
-
-  fetch("/recordings", {
-    method: "POST",
-    headers: {
-      "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
-      "Accept": "application/json"
-    },
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status !== "ok") throw new Error("保存レスポンス異常");
-
-    document.getElementById("save-status").innerText = "保存完了！マイページに移動します...";
-
-    // 1秒後に自動遷移
-    setTimeout(() => {
-      window.location.href = data.redirect_url;
-    }, 1000);
-  })
-  .catch(err => {
-    console.error(err);
-    document.getElementById("save-status").innerText = "保存に失敗しました";
-  });
-});
-</script>
