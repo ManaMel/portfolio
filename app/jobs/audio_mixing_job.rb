@@ -1,82 +1,131 @@
 class AudioMixingJob < ApplicationJob
   queue_as :default
 
-  def perform(recording_id)
+ def perform(recording_id, delay_seconds = nil, vocal_gain = nil)
     recording = Recording.find(recording_id)
-
-    # original_audio と accompaniment が揃っていない場合は失敗扱いにする
-    unless recording.original_audio.attached? && recording.accompaniment.attached?
-      # ログに出力して、なぜ処理をスキップしたか確認できるようにする
-      Rails.logger.warn("[AudioMixingJob] Skipping job #{recording_id}: Missing attachments.")
-      recording.update(status: :created)
+    
+    Rails.logger.info "AudioMixingJob: Recording ##{recording_id}, status=#{recording.status}"
+    
+    if recording.generated?
+      Rails.logger.info "AudioMixingJob: Already generated, skipping"
       return
     end
+    
+    begin
+      Rails.logger.info "AudioMixingJob: Start mixing Recording #{recording_id}"
+      
+      # ★★★ 引数から値を使用、なければDBから取得 ★★★
+      delay_seconds ||= recording.recording_delay || 0.0
+      vocal_gain ||= recording.vocal_gain || 0.5
+      
+      Rails.logger.info "AudioMixingJob: Using delay=#{delay_seconds}s, vocal_gain=#{vocal_gain}"
+      
+      unless recording.original_audio.attached? && recording.accompaniment.attached?
+        raise "必要なファイルが揃っていません"
+      end
+      
+      original_path = download_to_temp(recording.original_audio, "original_#{recording.id}.wav")
+      accompaniment_path = download_to_temp(recording.accompaniment, "accompaniment_#{recording.id}")
+      output_path = Rails.root.join('tmp', "mixed_#{recording.id}.mp3").to_s
+      
+      mix_audio(
+        original_path: original_path,
+        accompaniment_path: accompaniment_path,
+        output_path: output_path,
+        delay_seconds: delay_seconds,
+        vocal_gain: vocal_gain
+      )
+      
+      recording.generated_audio.attach(
+        io: File.open(output_path),
+        filename: "mixed_#{recording.id}.mp3",
+        content_type: 'audio/mpeg'
+      )
+      
+      recording.update!(status: :generated)
+      Rails.logger.info "AudioMixingJob: Finished Recording #{recording_id}"
+      
+    rescue => e
+      Rails.logger.error "AudioMixingJob: Error - Recording #{recording_id}, Error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      recording.update!(status: :failed, error_message: e.message)
+    ensure
+      cleanup_temp_files([original_path, accompaniment_path, output_path])
+    end
+  end
 
-    # ステータスを「生成中」に変更
-    recording.update(status: :generating)
 
-    original = recording.original_audio
-    accomp   = recording.accompaniment
+  private
 
-    # S3からファイルをダウンロードし、ローカルの一時ファイルとして使用
-    # original.open と accomp.open は、S3からダウンロードしたファイルの一時パスを提供
-    original.open do |original_tempfile|
-      accomp.open do |accomp_tempfile|
-        
-        # S3からダウンロードされた一時ファイルのパス
-        original_path = original_tempfile.path
-        accomp_path   = accomp_tempfile.path
+  def download_to_temp(attachment, filename)
+    temp_file = Tempfile.new([filename, File.extname(attachment.filename.to_s)])
+    temp_file.binmode
+    temp_file.write(attachment.download)
+    temp_file.flush
+    temp_file.path
+  end
 
-        # 出力テンポラリファイル
-        out_path = Rails.root.join("tmp", "mixed_#{SecureRandom.hex}.wav").to_s
+  def mix_audio(original_path:, accompaniment_path:, output_path:, delay_seconds:, vocal_gain:)
+    # 伴奏のゲインは (1 - vocal_gain) で計算
+    accompaniment_gain = 1.0 - vocal_gain
+    
+    Rails.logger.info "AudioMixingJob: Mixing with delay=#{delay_seconds}s, vocal_gain=#{vocal_gain}, accompaniment_gain=#{accompaniment_gain}"
+    
+    # FFmpegコマンドを構築
+    cmd = build_ffmpeg_command(
+      original_path: original_path,
+      accompaniment_path: accompaniment_path,
+      output_path: output_path,
+      delay_seconds: delay_seconds,
+      vocal_gain: vocal_gain,
+      accompaniment_gain: accompaniment_gain
+    )
+    
+    Rails.logger.info "AudioMixingJob: FFmpeg command: #{cmd}"
+    
+    # FFmpegを実行
+    stdout, stderr, status = Open3.capture3(cmd)
+    
+    unless status.success?
+      Rails.logger.error "AudioMixingJob: FFmpeg error: #{stderr}"
+      raise "FFmpegエラー: #{stderr}"
+    end
+    
+    Rails.logger.info "AudioMixingJob: FFmpeg success"
+  end
 
-        begin
-          Rails.logger.info("[AudioMixingJob] Starting FFmpeg mixing process.")
-          
-          # ffmpeg ミックス処理を実行
-          # パスを文字列として安全に渡すため、Shellwords.escape を使用することが理想的ですが、
-          # Rubyのsystemコマンドとダブルクォートでひとまず対処します。
-          system <<~CMD
-            ffmpeg -y \
-            -i "#{original_path}" \
-            -i "#{accomp_path}" \
-            -filter_complex "amix=inputs=2:duration=longest" \
-            "#{out_path}"
-          CMD
+  def build_ffmpeg_command(original_path:, accompaniment_path:, output_path:, delay_seconds:, vocal_gain:, accompaniment_gain:)
+    if delay_seconds >= 0
+      delay_ms = (delay_seconds * 1000).to_i
+      # モノラル/ステレオ両対応（最初にaformatでステレオ化）
+      <<~CMD.squish
+        ffmpeg -y
+        -i "#{accompaniment_path}"
+        -i "#{original_path}"
+        -filter_complex "[1:a]aformat=channel_layouts=stereo,adelay=#{delay_ms}|#{delay_ms},volume=#{vocal_gain}[a1];[0:a]aformat=channel_layouts=stereo,volume=#{accompaniment_gain}[a0];[a0][a1]amix=inputs=2:duration=longest:dropout_transition=2"
+        -ac 2
+        -b:a 192k
+        "#{output_path}"
+      CMD
+    else
+      offset = delay_seconds.abs
+      <<~CMD.squish
+        ffmpeg -y
+        -i "#{accompaniment_path}"
+        -i "#{original_path}"
+        -filter_complex "[1:a]aformat=channel_layouts=stereo,atrim=start=#{offset},volume=#{vocal_gain}[a1];[0:a]aformat=channel_layouts=stereo,volume=#{accompaniment_gain}[a0];[a0][a1]amix=inputs=2:duration=longest:dropout_transition=2"
+        -ac 2
+        -b:a 192k
+        "#{output_path}"
+      CMD
+    end
+  end
 
-          # 生成失敗時（ファイル未作成、またはFFmpegがエラーを返した）
-          unless File.exist?(out_path) && $?.success? # $?.success? でFFmpegの終了コードを確認
-            Rails.logger.error("[AudioMixingJob] FFmpeg failed to create output file.")
-            recording.update(status: :created)
-            return
-          end
-
-          # 生成音声をS3に保存
-          recording.generated_audio.attach(
-            io: File.open(out_path),
-            filename: "mixed_#{recording.id}.wav",
-            content_type: "audio/wav"
-          )
-
-          # 成功したので status を変更！
-          recording.update(status: :generated)
-          Rails.logger.info("[AudioMixingJob] Successfully generated and uploaded mixed audio.")
-
-        rescue => e
-          # 例外発生時はステータスを初期化し、エラーをログ
-          recording.update(status: :created)
-          Rails.logger.error("[AudioMixingJob] Runtime Error: #{e.message}")
-
-        ensure
-          # openブロックを抜けると、一時ファイル (original_tempfile, accomp_tempfile) は
-          # Active Storageによって自動的に削除されます。
-          # out_path のみを明示的に削除します。
-          if File.exist?(out_path)
-            File.delete(out_path) 
-            Rails.logger.info("[AudioMixingJob] Deleted temporary output file: #{out_path}")
-          end
-        end
-      end # accomp.open ブロック終了
-    end # original.open ブロック終了
+  def cleanup_temp_files(paths)
+    paths.compact.each do |path|
+      File.delete(path) if path && File.exist?(path)
+    rescue => e
+      Rails.logger.warn "AudioMixingJob: 一時ファイル削除エラー: #{e.message}"
+    end
   end
 end

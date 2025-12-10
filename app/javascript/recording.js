@@ -27,6 +27,9 @@ document.addEventListener("turbo:load", async function recording() {
 
     // --- WaveSurfer 初期化 ---
     let wavesurfer = null;
+    let waveformBlobUrl = null; // Blob URLを管理
+    let isLoadingWaveform = false; // 読み込み中フラグ
+    
     if (waveformContainer) {
       wavesurfer = WaveSurfer.create({
         container: waveformContainer,
@@ -126,6 +129,40 @@ document.addEventListener("turbo:load", async function recording() {
       return encodeAudio(out, { sampleRate: buffer.sampleRate });
     }
 
+    // WaveSurferを安全に更新する関数
+    async function updateWaveform(blob) {
+      if (!wavesurfer || isLoadingWaveform) return;
+      
+      isLoadingWaveform = true;
+      
+      try {
+        // 古いBlob URLを解放
+        if (waveformBlobUrl) {
+          URL.revokeObjectURL(waveformBlobUrl);
+        }
+        
+        // 新しいBlob URLを作成
+        waveformBlobUrl = URL.createObjectURL(blob);
+        
+        // WaveSurferを停止してから読み込み
+        if (wavesurfer.isPlaying()) {
+          wavesurfer.stop();
+        }
+        
+        // 読み込み完了を待つ
+        await new Promise((resolve, reject) => {
+          wavesurfer.once('ready', resolve);
+          wavesurfer.once('error', reject);
+          wavesurfer.load(waveformBlobUrl);
+        });
+        
+      } catch (error) {
+        console.warn('WaveSurfer更新エラー（無視）:', error);
+      } finally {
+        isLoadingWaveform = false;
+      }
+    }
+
     // --- エフェクト適用 ---
     async function renderProcessedBuffer() {
       if (!rawAudioBuffer) return;
@@ -173,10 +210,8 @@ document.addEventListener("turbo:load", async function recording() {
       // WAV化して window に保存
       window.latestRecordingBlob = audioBufferToWavBlob(processedAudioBuffer);
 
-      // WaveSurfer にも表示
-      if (wavesurfer) {
-        wavesurfer.load(URL.createObjectURL(window.latestRecordingBlob));
-      }
+      // WaveSurfer を安全に更新
+      await updateWaveform(window.latestRecordingBlob);
     }
 
     // --- イベントハンドラ ---
@@ -186,7 +221,12 @@ document.addEventListener("turbo:load", async function recording() {
       buttonStop.disabled = false;
       buttonSave.disabled = true;
       buffers.splice(0, buffers.length);
-      if (wavesurfer) wavesurfer.empty();
+      
+      // WaveSurferをクリア
+      if (wavesurfer) {
+        wavesurfer.empty();
+      }
+      
       const param = audioRecorder.parameters.get('isRecording');
       param?.setValueAtTime(1, audioContext.currentTime);
       console.log('録音開始');
@@ -225,17 +265,117 @@ document.addEventListener("turbo:load", async function recording() {
 
     buttonPlay.addEventListener('click', () => playProcessedAudio());
 
+    // ============================================================
+    // === 保存ボタンの処理 ===
+    // ============================================================
+    buttonSave.addEventListener('click', async () => {
+      if (!window.latestRecordingBlob) {
+        alert('保存する録音データがありません。先に録音を停止してください。');
+        return;
+      }
+
+      // タイトルを取得
+      const titleInput = document.querySelector('#recording_title');
+      const title = titleInput ? titleInput.value.trim() : '';
+
+      if (!title) {
+        alert('録音のタイトルを入力してください。');
+        return;
+      }
+
+      try {
+        buttonSave.disabled = true;
+        buttonSave.textContent = '保存中...';
+
+        // FormDataを作成
+        const formData = new FormData();
+        formData.append('recording[title]', title);
+        formData.append('recording[original_audio]', window.latestRecordingBlob, `${title}.wav`);
+
+        // CSRFトークンを取得
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        // サーバーに送信
+        const response = await fetch('/recordings', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'application/json'
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMessage = errorData.errors ? errorData.errors.join(', ') : '保存に失敗しました';
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        console.log('保存成功:', result);
+
+        // 成功時はリダイレクト
+        if (result.redirect_url) {
+          alert('録音が保存されました！リダイレクトします...');
+          window.location.href = result.redirect_url;
+        } else {
+          alert('録音が保存されました！');
+          window.location.reload();
+        }
+
+      } catch (error) {
+        console.error('保存エラー:', error);
+        alert(`保存に失敗しました: ${error.message}`);
+        buttonSave.disabled = false;
+        buttonSave.textContent = '保存する';
+      }
+    });
+    // ============================================================
+
     // --- スライダーでリアルタイム調整（録音後のみ反映） ---
+    // デバウンス処理を追加して連続更新を防ぐ
+    let renderTimeout = null;
     [volumeSlider, reverbSlider, echoDelaySlider, echoFeedbackSlider].forEach(slider => {
       slider.addEventListener('input', async () => {
         if (!rawAudioBuffer) return;
-        await renderProcessedBuffer();
+        
+        // 前のタイマーをクリア
+        if (renderTimeout) {
+          clearTimeout(renderTimeout);
+        }
+        
+        // 300ms後に実行（スライダーを動かし続けても最後だけ実行）
+        renderTimeout = setTimeout(async () => {
+          await renderProcessedBuffer();
+        }, 300);
       });
     });
 
     // --- Turbo cleanup ---
     document.addEventListener("turbo:before-cache", () => {
-      try { audioContext.close(); } catch {}
+      try {
+        // タイマーをクリア
+        if (renderTimeout) {
+          clearTimeout(renderTimeout);
+        }
+        
+        // Blob URLを解放
+        if (waveformBlobUrl) {
+          URL.revokeObjectURL(waveformBlobUrl);
+          waveformBlobUrl = null;
+        }
+        
+        // WaveSurferをクリーンアップ
+        if (wavesurfer) {
+          wavesurfer.destroy();
+          wavesurfer = null;
+        }
+        
+        // AudioContextをクローズ
+        audioContext.close();
+      } catch (e) {
+        console.warn('Cleanup error:', e);
+      }
       window.__audioInitialized__ = false;
     });
 
