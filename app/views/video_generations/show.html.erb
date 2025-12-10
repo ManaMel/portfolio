@@ -24,6 +24,40 @@
     </span>
   </div>
 
+  <!-- 生成中の自動リロード + 手動リロードボタン -->
+  <% if @video_generation.generating? %>
+    <div class="card bg-base-100 shadow-xl mb-6 border-2 border-warning">
+      <div class="card-body text-center">
+        <div class="flex flex-col items-center gap-4">
+          <!-- ローディングアニメーション -->
+          <span class="loading loading-spinner loading-lg text-warning"></span>
+          
+          <div>
+            <h3 class="text-xl font-bold">動画を生成中です</h3>
+            <p class="text-gray-600 mt-2">完了までしばらくお待ちください...</p>
+            <p class="text-sm text-gray-500 mt-1">このページは自動的に更新されます</p>
+          </div>
+          
+          <!-- 手動リロードボタン -->
+          <button onclick="location.reload()" class="btn btn-outline btn-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            今すぐ更新
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 自動リロードスクリプト -->
+    <script>
+      // 5秒ごとに自動リロード
+      setTimeout(function() {
+        location.reload();
+      }, 5000);
+    </script>
+  <% end %>
+
   <!-- サムネイル画像アップロード -->
   <% unless @video_generation.generated? %>
     <div class="card bg-base-100 shadow-xl mb-6">
