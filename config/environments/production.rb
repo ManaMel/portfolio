@@ -26,9 +26,9 @@ Rails.application.configure do
   config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
 
   # ★★★ 修正: 以下の2行を削除またはコメントアウトします。Sassのロードを強制的に停止します。
-  # config.assets.css_compressor = :sass 
   # config.assets.css_compressor = :sass
-  
+  # config.assets.css_compressor = :sass
+
   # Do not fall back to assets pipeline if a precompiled asset is missed.
   config.assets.compile = false
 

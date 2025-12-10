@@ -12,7 +12,7 @@ class Recording < ApplicationRecord
 
   validates :title, presence: true, length: { maximum: 255 }
   validates :original_audio, presence: true, on: :create
-  
+
   validates :recording_delay, numericality: true, allow_nil: true
   validates :vocal_gain, numericality: true, allow_nil: true
 
@@ -26,7 +26,7 @@ class Recording < ApplicationRecord
 
   def start_generation!
     return false unless ready_for_generation?
-    
+
     update!(status: :generating)
     true
   end
@@ -47,10 +47,10 @@ class Recording < ApplicationRecord
 
   def normalize_audio_mime_type
     return unless original_audio.attached?
-    
+
     current_mime_type = original_audio.content_type
-    if current_mime_type.include?('wav') && current_mime_type != 'audio/wav'
-      original_audio.blob.update!(content_type: 'audio/wav')
+    if current_mime_type.include?("wav") && current_mime_type != "audio/wav"
+      original_audio.blob.update!(content_type: "audio/wav")
       Rails.logger.info "Recording #{id}: original_audio MIME type updated from '#{current_mime_type}' to 'audio/wav'."
     end
   end
