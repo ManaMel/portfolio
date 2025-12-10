@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_10_074440) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_10_123230) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -82,15 +82,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_10_074440) do
   create_table "video_generations", force: :cascade do |t|
     t.bigint "user_id"
     t.bigint "recording_id"
-    t.bigint "video_id"
     t.string "title"
     t.text "body"
-    t.string "video_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "status", default: 0, null: false
+    t.text "error_message"
     t.index ["recording_id"], name: "index_video_generations_on_recording_id"
     t.index ["user_id"], name: "index_video_generations_on_user_id"
-    t.index ["video_id"], name: "index_video_generations_on_video_id"
   end
 
   create_table "videos", force: :cascade do |t|
@@ -112,7 +111,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_10_074440) do
   add_foreign_key "recordings", "users"
   add_foreign_key "video_generations", "recordings"
   add_foreign_key "video_generations", "users"
-  add_foreign_key "video_generations", "videos"
   add_foreign_key "videos", "recordings"
   add_foreign_key "videos", "users"
 end

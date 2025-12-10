@@ -1,63 +1,43 @@
-<!-- app/views/video_generations/index.html.erb -->
+<%= render 'layouts/header' %>
 
-<h1 class="text-2xl font-bold mb-6">音声・動画生成</h1>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-6">動画作成</h1>
 
-<div class="space-y-6">
+  <div class="mb-6">
+    <p class="text-gray-600 mb-4">ミキシング済みの録音を選択して、動画を作成しましょう。</p>
+  </div>
 
-  <% @recordings.each do |recording| %>
-    <div class="card bg-base-200 shadow-lg p-6 rounded-2xl">
-      <h2 class="text-xl font-bold mb-2">
-        🎤 <%= recording.title.presence || "無題の録音" %>
-      </h2>
-
-      <% if recording.original_audio.attached? %>
-        <p class="text-sm opacity-70 mb-4">
-          録音日時: <%= recording.created_at.strftime("%Y/%m/%d %H:%M") %>
-        </p>
-      <% end %>
-
-      <!-- フォーム開始 -->
-      <%= form_with url: generate_audio_video_generations_path, 
-                    method: :post,
-                    local: true,
-                    html: { enctype: "multipart/form-data" } do |f| %>
-
-        <!-- recording_id を hidden で送る -->
-        <%= hidden_field_tag :recording_id, recording.id %>
-
-        <label 
-          class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed 
-                 border-primary rounded-xl cursor-pointer hover:bg-base-300 transition">
-          
-          <span class="text-primary font-semibold">伴奏音源をアップロード</span>
-          <span class="text-sm opacity-70">mp3 / wav 形式に対応</span>
-
-          <%= file_field_tag :accompaniment, 
-                class: "hidden", 
-                accept: "audio/*",
-                id: "accomp-file-#{recording.id}" %>
-        </label>
-
-        <div id="selected-file-<%= recording.id %>" 
-             class="mt-2 text-sm text-center opacity-80"></div>
-
-        <script>
-          document.addEventListener("DOMContentLoaded", () => {
-            const input = document.getElementById("accomp-file-<%= recording.id %>");
-            const out = document.getElementById("selected-file-<%= recording.id %>");
-            input.addEventListener("change", () => {
-              out.innerText = input.files.length ? `選択中: ${input.files[0].name}` : "";
-            });
-          });
-        </script>
-
-        <div class="mt-4 flex justify-end">
-          <%= f.submit "音声生成", class: "btn btn-primary" %>
+  <% if @recordings.empty? %>
+    <div class="alert alert-info">
+      <p>ミキシング済みの録音がありません。</p>
+      <p class="mt-2"><%= link_to "録音ページへ", recordings_path, class: "btn btn-primary" %></p>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% @recordings.each do |recording| %>
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title"><%= recording.title %></h2>
+            <p class="text-sm text-gray-600">
+              作成日: <%= recording.created_at.strftime("%Y/%m/%d") %>
+            </p>
+            
+            <% if recording.generated_audio.attached? %>
+              <audio controls class="w-full mt-2">
+                <source src="<%= rails_blob_path(recording.generated_audio) %>" type="audio/mpeg">
+              </audio>
+            <% end %>
+            
+            <div class="card-actions justify-end mt-4">
+              <%= link_to "この録音で動画作成", new_video_generation_path(recording_id: recording.id), class: "btn btn-primary" %>
+            </div>
+          </div>
         </div>
-
       <% end %>
-      <!-- フォーム終了 -->
-
     </div>
   <% end %>
+  
+  <div class="mt-8">
+    <%= link_to "← ホームに戻る", root_path, class: "btn btn-ghost" %>
+  </div>
 </div>

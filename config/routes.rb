@@ -29,8 +29,10 @@ Rails.application.routes.draw do
       end
     end
     resources :guidelines, only: [ :index ]
-    resources :video_generations, only: [ :index ] do
-      post :generate_audio, on: :collection
+    resources :video_generations do
+      member do
+        post :generate
+      end
     end
     resource :mypage, only: [ :show, :edit, :update ]
     namespace :admin do

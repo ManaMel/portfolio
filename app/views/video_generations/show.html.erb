@@ -1,0 +1,83 @@
+<%= render 'layouts/header' %>
+
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <h1 class="text-3xl font-bold mb-6"><%= @video_generation.title %></h1>
+
+  <!-- ステータス表示 -->
+  <div class="alert mb-6
+    <%= case @video_generation.status
+        when 'created' then 'alert-info'
+        when 'ready' then 'alert-success'
+        when 'generating' then 'alert-warning'
+        when 'generated' then 'alert-success'
+        when 'failed' then 'alert-error'
+        end %>">
+    <span>
+      ステータス: 
+      <%= case @video_generation.status
+          when 'created' then '画像アップロード待ち'
+          when 'ready' then '生成準備完了'
+          when 'generating' then '動画生成中...'
+          when 'generated' then '生成完了！'
+          when 'failed' then "生成失敗: #{@video_generation.error_message}"
+          end %>
+    </span>
+  </div>
+
+  <!-- サムネイル画像アップロード -->
+  <% unless @video_generation.generated? %>
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title">サムネイル画像</h2>
+
+        <% if @video_generation.thumbnail_image.attached? %>
+          <img src="<%= rails_blob_path(@video_generation.thumbnail_image) %>" 
+               alt="Thumbnail" 
+               class="max-w-md mx-auto rounded">
+        <% end %>
+
+        <%= form_with model: @video_generation, method: :patch do |f| %>
+          <div class="form-control">
+            <%= f.label :thumbnail_image, "画像を選択（推奨: 16:9の横長画像）", class: "label" %>
+            <%= f.file_field :thumbnail_image, 
+                            accept: "image/*", 
+                            class: "file-input file-input-bordered w-full" %>
+          </div>
+
+          <%= f.submit "画像をアップロード", class: "btn btn-primary mt-4" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- 動画生成ボタン -->
+  <% if @video_generation.ready? %>
+    <%= button_to "動画を生成", generate_video_generation_path(@video_generation), 
+                  method: :post, 
+                  class: "btn btn-success btn-lg w-full mb-6",
+                  data: { confirm: "動画生成を開始しますか？" } %>
+  <% end %>
+
+  <!-- 生成された動画 -->
+  <% if @video_generation.generated? && @video_generation.generated_video.attached? %>
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">生成された動画</h2>
+
+        <video controls class="w-full rounded">
+          <source src="<%= rails_blob_path(@video_generation.generated_video) %>" type="video/mp4">
+        </video>
+
+        <div class="card-actions justify-end mt-4">
+          <%= link_to "ダウンロード", 
+                      rails_blob_path(@video_generation.generated_video, disposition: "attachment"), 
+                      class: "btn btn-primary" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mt-8">
+    <%= link_to "← 動画一覧に戻る", video_generations_path, class: "btn btn-ghost" %>
+  </div>
+</div>

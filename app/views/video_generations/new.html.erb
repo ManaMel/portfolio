@@ -1,0 +1,37 @@
+<%= render 'layouts/header' %>
+
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+  <h1 class="text-3xl font-bold mb-6">動画プロジェクト作成</h1>
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title">選択された録音</h2>
+      <p><%= @recording.title %></p>
+
+      <% if @recording.generated_audio.attached? %>
+        <audio controls class="w-full mt-2">
+          <source src="<%= rails_blob_path(@recording.generated_audio) %>" type="audio/mpeg">
+        </audio>
+      <% end %>
+    </div>
+  </div>
+
+  <%= form_with model: @video_generation, class: "mt-6" do |f| %>
+    <%= f.hidden_field :recording_id, value: @recording.id %>
+
+    <div class="form-control mb-4">
+      <%= f.label :title, "動画タイトル", class: "label" %>
+      <%= f.text_field :title, class: "input input-bordered w-full", placeholder: "例: 私の歌ってみた動画" %>
+    </div>
+
+    <div class="form-control mb-4">
+      <%= f.label :body, "動画の説明（任意）", class: "label" %>
+      <%= f.text_area :body, class: "textarea textarea-bordered w-full", rows: 4, placeholder: "動画の説明を入力..." %>
+    </div>
+
+    <div class="flex gap-4">
+      <%= f.submit "プロジェクト作成", class: "btn btn-primary" %>
+      <%= link_to "キャンセル", video_generations_path, class: "btn btn-ghost" %>
+    </div>
+  <% end %>
+</div>
