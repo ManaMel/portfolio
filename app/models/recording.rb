@@ -3,6 +3,7 @@ class Recording < ApplicationRecord
 
   belongs_to :user
   has_many :videos, dependent: :destroy
+  has_many :video_generations, dependent: :destroy
 
   has_one_attached :original_audio
   has_one_attached :accompaniment

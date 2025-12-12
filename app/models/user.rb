@@ -8,6 +8,11 @@ class User < ApplicationRecord
   has_many :recordings, dependent: :destroy
   has_many :video_generations, dependent: :destroy
   has_one :profile, dependent: :destroy
+  has_one :youtube_credential, dependent: :destroy
+
+  def youtube_authenticated?
+    youtube_credential&.valid_token?
+  end
 
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable

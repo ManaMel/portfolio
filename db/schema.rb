@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_10_123230) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_11_031840) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -88,6 +88,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_10_123230) do
     t.datetime "updated_at", null: false
     t.integer "status", default: 0, null: false
     t.text "error_message"
+    t.string "youtube_url"
+    t.string "youtube_video_id"
+    t.boolean "uploaded_to_youtube", default: false
+    t.integer "upload_destination", default: 0
     t.index ["recording_id"], name: "index_video_generations_on_recording_id"
     t.index ["user_id"], name: "index_video_generations_on_user_id"
   end
@@ -105,6 +109,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_10_123230) do
     t.index ["user_id"], name: "index_videos_on_user_id"
   end
 
+  create_table "youtube_credentials", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.text "access_token"
+    t.text "refresh_token"
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_youtube_credentials_on_user_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "profiles", "users"
@@ -113,4 +127,5 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_10_123230) do
   add_foreign_key "video_generations", "users"
   add_foreign_key "videos", "recordings"
   add_foreign_key "videos", "users"
+  add_foreign_key "youtube_credentials", "users"
 end

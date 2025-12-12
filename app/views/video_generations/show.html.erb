@@ -2,7 +2,7 @@
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
   <h1 class="text-3xl font-bold mb-6"><%= @video_generation.title %></h1>
-
+  
   <!-- ステータス表示 -->
   <div class="alert mb-6
     <%= case @video_generation.status
@@ -10,6 +10,8 @@
         when 'ready' then 'alert-success'
         when 'generating' then 'alert-warning'
         when 'generated' then 'alert-success'
+        when 'uploading' then 'alert-warning'
+        when 'uploaded' then 'alert-success'
         when 'failed' then 'alert-error'
         end %>">
     <span>
@@ -18,18 +20,70 @@
           when 'created' then '画像アップロード待ち'
           when 'ready' then '生成準備完了'
           when 'generating' then '動画生成中...'
-          when 'generated' then '生成完了！'
-          when 'failed' then "生成失敗: #{@video_generation.error_message}"
+          when 'generated' then '動画生成完了！'
+          when 'uploading' then 'YouTubeアップロード中...'
+          when 'uploaded' then 'YouTubeアップロード完了！'
+          when 'failed' then "失敗: #{@video_generation.error_message}"
           end %>
     </span>
   </div>
-
-  <!-- 生成中の自動リロード + 手動リロードボタン -->
+  
+  <!-- サムネイル画像アップロード -->
+  <% unless @video_generation.generated? || @video_generation.uploaded? %>
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title">📸 サムネイル画像</h2>
+        
+        <% if @video_generation.thumbnail_image.attached? %>
+          <div class="mb-4">
+            <img src="<%= rails_blob_path(@video_generation.thumbnail_image) %>" 
+                 alt="Thumbnail" 
+                 class="max-w-md mx-auto rounded shadow-lg">
+          </div>
+        <% end %>
+        
+        <%= form_with model: @video_generation, method: :patch do |f| %>
+          <div class="form-control">
+            <%= f.label :thumbnail_image, "画像を選択（推奨: 16:9の横長画像）", class: "label" %>
+            <%= f.file_field :thumbnail_image, 
+                            accept: "image/*", 
+                            class: "file-input file-input-bordered w-full" %>
+            <label class="label">
+              <span class="label-text-alt text-gray-500">
+                JPG, PNG形式対応。動画のサムネイルとして使用されます。
+              </span>
+            </label>
+          </div>
+          
+          <%= f.submit "画像をアップロード", class: "btn btn-primary mt-4" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- 動画生成ボタン -->
+  <% if @video_generation.ready? %>
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title">動画を生成</h2>
+        <p class="text-gray-600">
+          サムネイル画像と音声から動画を生成します。
+        </p>
+        
+        <%= button_to "動画を生成", 
+                      generate_video_generation_path(@video_generation), 
+                      method: :post, 
+                      class: "btn btn-success btn-lg w-full mt-4",
+                      data: { confirm: "動画生成を開始しますか？" } %>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- 動画生成中 -->
   <% if @video_generation.generating? %>
     <div class="card bg-base-100 shadow-xl mb-6 border-2 border-warning">
       <div class="card-body text-center">
         <div class="flex flex-col items-center gap-4">
-          <!-- ローディングアニメーション -->
           <span class="loading loading-spinner loading-lg text-warning"></span>
           
           <div>
@@ -38,7 +92,6 @@
             <p class="text-sm text-gray-500 mt-1">このページは自動的に更新されます</p>
           </div>
           
-          <!-- 手動リロードボタン -->
           <button onclick="location.reload()" class="btn btn-outline btn-warning">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -49,59 +102,28 @@
       </div>
     </div>
     
-    <!-- 自動リロードスクリプト -->
     <script>
-      // 5秒ごとに自動リロード
-      setTimeout(function() {
-        location.reload();
-      }, 5000);
+      setTimeout(() => location.reload(), 5000);
     </script>
   <% end %>
-
-  <!-- サムネイル画像アップロード -->
-  <% unless @video_generation.generated? %>
+  
+  <!-- 生成された動画のプレビュー -->
+  <% if @video_generation.generated? && @video_generation.generated_video.attached? %>
+    <div class="alert alert-success mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>動画の生成が完了しました！</span>
+    </div>
+    
     <div class="card bg-base-100 shadow-xl mb-6">
       <div class="card-body">
-        <h2 class="card-title">サムネイル画像</h2>
-
-        <% if @video_generation.thumbnail_image.attached? %>
-          <img src="<%= rails_blob_path(@video_generation.thumbnail_image) %>" 
-               alt="Thumbnail" 
-               class="max-w-md mx-auto rounded">
-        <% end %>
-
-        <%= form_with model: @video_generation, method: :patch do |f| %>
-          <div class="form-control">
-            <%= f.label :thumbnail_image, "画像を選択（推奨: 16:9の横長画像）", class: "label" %>
-            <%= f.file_field :thumbnail_image, 
-                            accept: "image/*", 
-                            class: "file-input file-input-bordered w-full" %>
-          </div>
-
-          <%= f.submit "画像をアップロード", class: "btn btn-primary mt-4" %>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <!-- 動画生成ボタン -->
-  <% if @video_generation.ready? %>
-    <%= button_to "動画を生成", generate_video_generation_path(@video_generation), 
-                  method: :post, 
-                  class: "btn btn-success btn-lg w-full mb-6",
-                  data: { confirm: "動画生成を開始しますか？" } %>
-  <% end %>
-
-  <!-- 生成された動画 -->
-  <% if @video_generation.generated? && @video_generation.generated_video.attached? %>
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body">
-        <h2 class="card-title">生成された動画</h2>
-
-        <video controls class="w-full rounded">
+        <h2 class="card-title">🎥 生成された動画</h2>
+        
+        <video controls class="w-full rounded shadow-lg">
           <source src="<%= rails_blob_path(@video_generation.generated_video) %>" type="video/mp4">
         </video>
-
+        
         <div class="card-actions justify-end mt-4">
           <%= link_to "ダウンロード", 
                       rails_blob_path(@video_generation.generated_video, disposition: "attachment"), 
@@ -110,8 +132,166 @@
       </div>
     </div>
   <% end %>
-
-  <div class="mt-8">
+  
+  <!-- YouTubeアップロードセクション -->
+  <% if @video_generation.generated? && !@video_generation.uploaded_to_youtube? %>
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title">YouTubeにアップロード</h2>
+        
+        <div class="space-y-4 mt-4">
+          <!-- 選択肢1: ユーザー自身のチャンネル -->
+          <div class="border rounded-lg p-4 <%= @can_upload_to_user_channel ? 'border-primary' : 'border-gray-300' %>">
+            <div class="flex items-start gap-4">
+              <input type="radio" 
+                     name="upload_destination" 
+                     value="user_channel" 
+                     class="radio radio-primary mt-1"
+                     id="user_channel"
+                     <%= 'disabled' unless @can_upload_to_user_channel %>>
+              <div class="flex-1">
+                <label for="user_channel" class="font-bold cursor-pointer">
+                  自分のYouTubeチャンネル
+                </label>
+                <p class="text-sm text-gray-600 mt-1">
+                  あなた自身のチャンネルに動画をアップロードします。<br>
+                  動画の所有権はあなたにあり、自由に編集・削除できます。
+                </p>
+                
+                <% unless @can_upload_to_user_channel %>
+                  <div class="mt-2">
+                    <%= link_to "YouTube認証", youtube_auth_path, class: "btn btn-sm btn-primary" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 選択肢2: アプリ専用チャンネル -->
+          <div class="border rounded-lg p-4 border-gray-300">
+            <div class="flex items-start gap-4">
+              <input type="radio" 
+                     name="upload_destination" 
+                     value="app_channel" 
+                     class="radio radio-secondary mt-1"
+                     id="app_channel"
+                     checked>
+              <div class="flex-1">
+                <label for="app_channel" class="font-bold cursor-pointer">
+                  Mysicコミュニティチャンネル
+                </label>
+                <p class="text-sm text-gray-600 mt-1">
+                  Mysic専用チャンネルに動画をアップロードします。<br>
+                  他のユーザーと作品を共有できますが、動画の所有権は管理者にあります。
+                </p>
+                <p class="text-xs text-warning mt-1">
+                  ※ 1日のアップロード上限があります（先着順）
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <%= form_with url: upload_to_youtube_video_generation_path(@video_generation), 
+                      method: :post, 
+                      id: "youtube-upload-form" do |f| %>
+          <%= f.hidden_field :destination, value: 'app_channel', id: 'destination_field' %>
+          
+          <div class="card-actions justify-end mt-6">
+            <%= f.submit "YouTubeにアップロード", 
+                        class: "btn btn-success btn-lg",
+                        data: { confirm: "YouTubeにアップロードしますか？" } %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <script>
+      // ラジオボタンの選択に応じてフォームを更新
+      document.querySelectorAll('input[name="upload_destination"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          document.getElementById('destination_field').value = e.target.value;
+        });
+      });
+    </script>
+  <% end %>
+  
+  <!-- YouTubeアップロード中 -->
+  <% if @video_generation.uploading? %>
+    <div class="card bg-base-100 shadow-xl mb-6 border-2 border-warning">
+      <div class="card-body text-center">
+        <div class="flex flex-col items-center gap-4">
+          <span class="loading loading-spinner loading-lg text-warning"></span>
+          
+          <div>
+            <h3 class="text-xl font-bold">YouTubeにアップロード中...</h3>
+            <p class="text-gray-600 mt-2">完了までしばらくお待ちください</p>
+            <p class="text-sm text-gray-500 mt-1">このページは自動的に更新されます</p>
+          </div>
+          
+          <button onclick="location.reload()" class="btn btn-outline btn-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            今すぐ更新
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      setTimeout(() => location.reload(), 5000);
+    </script>
+  <% end %>
+  
+  <!-- YouTubeアップロード完了 -->
+  <% if @video_generation.uploaded? && @video_generation.youtube_video_id.present? %>
+    <div class="alert alert-success mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>YouTubeへのアップロードが完了しました！</span>
+    </div>
+    
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title">YouTube動画</h2>
+        
+        <div class="aspect-video">
+          <iframe 
+            width="100%" 
+            height="100%" 
+            src="https://www.youtube.com/embed/<%= @video_generation.youtube_video_id %>" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen
+            class="rounded shadow-lg">
+          </iframe>
+        </div>
+        
+        <div class="card-actions justify-end mt-4">
+          <%= link_to @video_generation.youtube_url, 
+                      target: "_blank", 
+                      class: "btn btn-primary" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+              <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+            </svg>
+            YouTubeで見る
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- 削除ボタン -->
+  <div class="mt-8 flex gap-4">
     <%= link_to "← 動画一覧に戻る", video_generations_path, class: "btn btn-ghost" %>
+    
+    <%= button_to "プロジェクトを削除", 
+                  video_generation_path(@video_generation), 
+                  method: :delete, 
+                  class: "btn btn-error btn-outline",
+                  data: { confirm: "本当に削除しますか？" } %>
   </div>
 </div>

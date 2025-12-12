@@ -5,6 +5,12 @@ Rails.application.routes.draw do
   unauthenticated do
     root to: "static_pages#top"
   end
+  
+  # YouTube認証
+  get '/youtube/auth', to: 'youtube_auth#new', as: :youtube_auth
+  get '/youtube/callback', to: 'youtube_auth#callback', as: :youtube_callback
+  # アプリチャンネル用（一時的）
+  get '/youtube/app_channel_callback', to: 'youtube_auth#app_channel_callback', as: :youtube_app_channel_callback
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
@@ -28,12 +34,17 @@ Rails.application.routes.draw do
         get :search
       end
     end
+
     resources :guidelines, only: [ :index ]
+
     resources :video_generations do
       member do
         post :generate
+        post :upload_to_youtube
+        get :status
       end
     end
+
     resource :mypage, only: [ :show, :edit, :update ]
     namespace :admin do
       resources :dashboards, only: %i[index]
