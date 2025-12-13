@@ -37,6 +37,11 @@ Rails.application.routes.draw do
 
     resources :guidelines, only: [ :index ]
 
+    get '/terms', to: 'pages#terms', as: :terms
+    get '/privacy', to: 'pages#privacy', as: :privacy
+    get '/contact', to: 'pages#contact', as: :contact
+    post '/contact', to: 'pages#create_contact'
+
     resources :video_generations do
       member do
         post :generate
