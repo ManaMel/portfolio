@@ -1,8 +1,6 @@
-# app/controllers/video_generations_controller.rb
-
 class VideoGenerationsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_video_generation, only: [:show, :update, :generate, :upload_to_youtube, :destroy]
+  before_action :set_video_generation, only: [:show, :update, :edit, :generate, :upload_to_youtube, :destroy]
 
   # 一覧ページ（録音を選択）
   def index
@@ -40,13 +38,26 @@ class VideoGenerationsController < ApplicationController
     @can_upload_to_user_channel = @video_generation.can_upload_to_user_channel?
   end
 
-  # サムネイル画像をアップロード
+  def edit
+    # 楽曲情報入力画面
+  end
+
+  # サムネイル画像または楽曲情報を更新
   def update
     if @video_generation.update(video_generation_params)
-      @video_generation.update(status: :ready) if @video_generation.ready_for_generation?
-      redirect_to @video_generation, notice: 'サムネイル画像をアップロードしました。'
+      # サムネイル画像がアップロードされた場合のみstatusを更新
+      # 動画が既に生成されている場合はstatusを変更しない
+      if params[:video_generation][:thumbnail_image].present? && 
+         @video_generation.created? && 
+         @video_generation.ready_for_generation?
+        @video_generation.update(status: :ready)
+        redirect_to @video_generation, notice: 'サムネイル画像をアップロードしました。'
+      else
+        # 楽曲情報の更新
+        redirect_to @video_generation, notice: '更新しました。'
+      end
     else
-      render :show, status: :unprocessable_entity
+      render :edit, status: :unprocessable_entity
     end
   end
 
@@ -69,8 +80,13 @@ class VideoGenerationsController < ApplicationController
     end
   end
 
-  # YouTubeアップロード開始（★ これが追加されていませんでした）
+  # YouTubeアップロード開始
   def upload_to_youtube
+    unless @video_generation.has_song_info?
+      redirect_to edit_video_generation_path(@video_generation), alert: 'YouTubeアップロード前に楽曲情報を入力してください。'
+      return
+    end
+
     unless @video_generation.ready_for_youtube_upload?
       redirect_to @video_generation, alert: '動画がまだ生成されていません。'
       return
@@ -107,6 +123,9 @@ class VideoGenerationsController < ApplicationController
   end
 
   def video_generation_params
-    params.require(:video_generation).permit(:title, :body, :recording_id, :thumbnail_image)
+    params.require(:video_generation).permit(
+      :title, :body, :recording_id, :thumbnail_image, 
+      :song_title, :original_artist, :composer, :lyricist, :copyright_notes
+    )
   end
 end

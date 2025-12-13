@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_11_031840) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_13_040406) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -92,6 +92,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_031840) do
     t.string "youtube_video_id"
     t.boolean "uploaded_to_youtube", default: false
     t.integer "upload_destination", default: 0
+    t.string "song_title"
+    t.string "original_artist"
+    t.string "composer"
+    t.string "lyricist"
+    t.text "copyright_notes"
     t.index ["recording_id"], name: "index_video_generations_on_recording_id"
     t.index ["user_id"], name: "index_video_generations_on_user_id"
   end

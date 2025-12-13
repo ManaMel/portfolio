@@ -1,39 +1,31 @@
-require 'google/apis/youtube_v3'
-require 'signet/oauth_2/client'
-
 class YoutubeUploader
-  # 初期化
   def initialize(video_generation)
     @video_generation = video_generation
-    @user = video_generation.user
-    @youtube = Google::Apis::YoutubeV3::YouTubeService.new
+    @youtube = nil
   end
   
-  # メインのアップロード処理
   def upload!
-    Rails.logger.info "YoutubeUploader: Start uploading video_generation ##{@video_generation.id}"
+    Rails.logger.info "YoutubeUploader: Start uploading video ##{@video_generation.id}"
     
-    # 1. 認証情報をセットアップ
+    # 認証設定
     setup_authorization
     
-    # 2. 動画ファイルを一時的にダウンロード
+    # 動画ファイルをダウンロード
     video_path = download_video
     
-    # 3. YouTube用の動画情報を作成
+    # YouTube APIにアップロード
     video_object = build_video_object
     
-    # 4. YouTubeにアップロード
+    # ⭐ 修正: upload_source を File.open で開き、content_type を明示
     result = @youtube.insert_video(
       'snippet,status',
       video_object,
       upload_source: video_path,
-      content_type: 'video/mp4'
+      content_type: 'video/mp4'  # ← これを追加
     )
     
-    # 5. URLを生成
+    # 成功
     youtube_url = "https://www.youtube.com/watch?v=#{result.id}"
-    
-    # 6. データベースを更新
     @video_generation.update!(
       youtube_url: youtube_url,
       youtube_video_id: result.id,
@@ -43,24 +35,19 @@ class YoutubeUploader
     
     Rails.logger.info "YoutubeUploader: Successfully uploaded to #{youtube_url}"
     
-    youtube_url
+    # 一時ファイルを削除
+    File.delete(video_path) if File.exist?(video_path)
     
+    result
   rescue => e
     Rails.logger.error "YoutubeUploader Error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
-    @video_generation.update!(
-      status: :failed,
-      error_message: "YouTube Upload Error: #{e.message}"
-    )
+    @video_generation.update!(status: :failed, error_message: e.message)
     raise
-  ensure
-    # 最後に一時ファイルを削除
-    File.delete(video_path) if video_path && File.exist?(video_path)
   end
   
   private
   
-  # 認証情報をセットアップ
   def setup_authorization
     if @video_generation.user_channel?
       setup_user_authorization
@@ -69,27 +56,31 @@ class YoutubeUploader
     end
   end
   
-  # ユーザーチャンネル用の認証
   def setup_user_authorization
-    credential = @user.youtube_credential
+    Rails.logger.info "YoutubeUploader: Using user channel authorization"
     
-    # トークンが期限切れなら更新
-    credential.refresh_token! unless credential.valid_token?
+    credential = @video_generation.user.youtube_credential
     
-    @youtube.authorization = Signet::OAuth2::Client.new(
+    # トークンが有効か確認
+    unless credential.valid_token?
+      credential.refresh_token!
+    end
+    
+    client = Signet::OAuth2::Client.new(
       client_id: ENV['YOUTUBE_CLIENT_ID'],
       client_secret: ENV['YOUTUBE_CLIENT_SECRET'],
       token_credential_uri: 'https://oauth2.googleapis.com/token',
       access_token: credential.access_token,
-      refresh_token: credential.refresh_token,
-      expires_at: credential.expires_at
+      refresh_token: credential.refresh_token
     )
     
-    Rails.logger.info "YoutubeUploader: Using user channel authorization"
+    @youtube = Google::Apis::YoutubeV3::YouTubeService.new
+    @youtube.authorization = client
   end
   
-  # アプリチャンネル用の認証
   def setup_app_authorization
+    Rails.logger.info "YoutubeUploader: Using app channel authorization"
+    
     client = Signet::OAuth2::Client.new(
       client_id: ENV['YOUTUBE_APP_CLIENT_ID'],
       client_secret: ENV['YOUTUBE_APP_CLIENT_SECRET'],
@@ -99,30 +90,29 @@ class YoutubeUploader
     
     client.fetch_access_token!
     
+    @youtube = Google::Apis::YoutubeV3::YouTubeService.new
     @youtube.authorization = client
-    
-    Rails.logger.info "YoutubeUploader: Using app channel authorization"
   end
   
-  # YouTube用の動画情報を作成
+  def download_video
+    tempfile = Tempfile.new(['youtube_upload_', '.mp4'])
+    tempfile.binmode
+    tempfile.write(@video_generation.generated_video.download)
+    tempfile.flush
+    tempfile.close
+    
+    Rails.logger.info "YoutubeUploader: Downloaded video to #{tempfile.path}"
+    
+    tempfile.path
+  end
+  
   def build_video_object
-    description = @video_generation.body.to_s
-    
-    # アプリチャンネルの場合はクレジット追加
-    if @video_generation.app_channel?
-      description += "\n\n---\n"
-      description += "Created by: #{@user.email}\n"
-      description += "App: Mysic\n"
-    end
-    
-    description += "\n#Mysic #歌ってみた #カラオケ"
-    
     {
       snippet: {
         title: @video_generation.title,
-        description: description,
-        tags: ['Mysic', '歌ってみた', 'カラオケ', '音楽'],
-        category_id: '10' # 音楽カテゴリ
+        description: @video_generation.youtube_description,
+        tags: build_tags,
+        category_id: '10'  # 音楽カテゴリ
       },
       status: {
         privacy_status: 'public',
@@ -131,12 +121,19 @@ class YoutubeUploader
     }
   end
   
-  # 動画を一時ファイルにダウンロード
-  def download_video
-    temp_file = Tempfile.new(['youtube_upload', '.mp4'])
-    temp_file.binmode
-    temp_file.write(@video_generation.generated_video.download)
-    temp_file.flush
-    temp_file.path
+  def build_tags
+    tags = ['Mysic', '歌ってみた', 'カバー', 'cover']
+    
+    # 曲名をタグに追加
+    if @video_generation.song_title.present?
+      tags << @video_generation.song_title
+    end
+    
+    # アーティスト名をタグに追加
+    if @video_generation.original_artist.present?
+      tags << @video_generation.original_artist
+    end
+    
+    tags
   end
 end

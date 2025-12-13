@@ -1,3 +1,5 @@
+<!-- app/views/video_generations/show.html.erb -->
+
 <%= render 'layouts/header' %>
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -32,7 +34,7 @@
   <% unless @video_generation.generated? || @video_generation.uploaded? %>
     <div class="card bg-base-100 shadow-xl mb-6">
       <div class="card-body">
-        <h2 class="card-title">📸 サムネイル画像</h2>
+        <h2 class="card-title">サムネイル画像</h2>
         
         <% if @video_generation.thumbnail_image.attached? %>
           <div class="mb-4">
@@ -118,7 +120,7 @@
     
     <div class="card bg-base-100 shadow-xl mb-6">
       <div class="card-body">
-        <h2 class="card-title">🎥 生成された動画</h2>
+        <h2 class="card-title">生成された動画</h2>
         
         <video controls class="w-full rounded shadow-lg">
           <source src="<%= rails_blob_path(@video_generation.generated_video) %>" type="video/mp4">
@@ -132,88 +134,180 @@
       </div>
     </div>
   <% end %>
-  
+
   <!-- YouTubeアップロードセクション -->
   <% if @video_generation.generated? && !@video_generation.uploaded_to_youtube? %>
-    <div class="card bg-base-100 shadow-xl mb-6">
-      <div class="card-body">
-        <h2 class="card-title">YouTubeにアップロード</h2>
-        
-        <div class="space-y-4 mt-4">
-          <!-- 選択肢1: ユーザー自身のチャンネル -->
-          <div class="border rounded-lg p-4 <%= @can_upload_to_user_channel ? 'border-primary' : 'border-gray-300' %>">
-            <div class="flex items-start gap-4">
-              <input type="radio" 
-                     name="upload_destination" 
-                     value="user_channel" 
-                     class="radio radio-primary mt-1"
-                     id="user_channel"
-                     <%= 'disabled' unless @can_upload_to_user_channel %>>
-              <div class="flex-1">
-                <label for="user_channel" class="font-bold cursor-pointer">
-                  自分のYouTubeチャンネル
-                </label>
-                <p class="text-sm text-gray-600 mt-1">
-                  あなた自身のチャンネルに動画をアップロードします。<br>
-                  動画の所有権はあなたにあり、自由に編集・削除できます。
-                </p>
-                
-                <% unless @can_upload_to_user_channel %>
-                  <div class="mt-2">
-                    <%= link_to "YouTube認証", youtube_auth_path, class: "btn btn-sm btn-primary" %>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 選択肢2: アプリ専用チャンネル -->
-          <div class="border rounded-lg p-4 border-gray-300">
-            <div class="flex items-start gap-4">
-              <input type="radio" 
-                     name="upload_destination" 
-                     value="app_channel" 
-                     class="radio radio-secondary mt-1"
-                     id="app_channel"
-                     checked>
-              <div class="flex-1">
-                <label for="app_channel" class="font-bold cursor-pointer">
-                  Mysicコミュニティチャンネル
-                </label>
-                <p class="text-sm text-gray-600 mt-1">
-                  Mysic専用チャンネルに動画をアップロードします。<br>
-                  他のユーザーと作品を共有できますが、動画の所有権は管理者にあります。
-                </p>
-                <p class="text-xs text-warning mt-1">
-                  ※ 1日のアップロード上限があります（先着順）
-                </p>
-              </div>
-            </div>
+    
+    <!-- 曲情報が未入力の場合：入力を促す -->
+    <% unless @video_generation.has_song_info? %>
+      <div class="card bg-warning text-warning-content shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            YouTubeアップロード前の確認
+          </h2>
+          <p>著作権保護のため、YouTubeにアップロードする前に楽曲情報の入力が必要です。</p>
+          <div class="card-actions justify-end mt-4">
+            <%= link_to edit_video_generation_path(@video_generation), class: "btn btn-primary" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              楽曲情報を入力する
+            <% end %>
           </div>
         </div>
-        
-        <%= form_with url: upload_to_youtube_video_generation_path(@video_generation), 
-                      method: :post, 
-                      id: "youtube-upload-form" do |f| %>
-          <%= f.hidden_field :destination, value: 'app_channel', id: 'destination_field' %>
-          
-          <div class="card-actions justify-end mt-6">
-            <%= f.submit "YouTubeにアップロード", 
-                        class: "btn btn-success btn-lg",
-                        data: { confirm: "YouTubeにアップロードしますか？" } %>
-          </div>
-        <% end %>
       </div>
-    </div>
+    <% end %>
     
-    <script>
-      // ラジオボタンの選択に応じてフォームを更新
-      document.querySelectorAll('input[name="upload_destination"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-          document.getElementById('destination_field').value = e.target.value;
+    <!-- 曲情報が入力済みの場合：YouTubeアップロードセクション -->
+    <% if @video_generation.has_song_info? %>
+      <!-- YouTube説明文プレビュー -->
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title">📋 YouTube説明文プレビュー</h2>
+          
+          <div class="alert alert-success">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>楽曲情報が入力されています</span>
+          </div>
+          
+          <div class="mockup-code text-sm mt-4">
+            <pre><code><%= @video_generation.youtube_description %></code></pre>
+          </div>
+          
+          <%= link_to "編集する", edit_video_generation_path(@video_generation), class: "btn btn-outline btn-sm mt-4" %>
+        </div>
+      </div>
+      
+      <!-- YouTubeアップロード -->
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title">📤 YouTubeにアップロード</h2>
+          
+          <!-- 確認チェックリスト -->
+          <div class="card bg-base-200 mb-4">
+            <div class="card-body">
+              <h3 class="font-bold mb-2">アップロード前の確認</h3>
+              <div class="space-y-2">
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-2">
+                    <input type="checkbox" class="checkbox checkbox-primary" id="check-song-info" />
+                    <span class="label-text">楽曲情報（曲名・アーティスト）を確認しました</span>
+                  </label>
+                </div>
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-2">
+                    <input type="checkbox" class="checkbox checkbox-primary" id="check-copyright" />
+                    <span class="label-text">著作権表記が適切であることを確認しました</span>
+                  </label>
+                </div>
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-2">
+                    <input type="checkbox" class="checkbox checkbox-primary" id="check-content-id" />
+                    <span class="label-text">YouTube Content IDによる権利処理を理解しました</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- アップロード先選択 -->
+          <div class="space-y-4 mt-4">
+            <!-- 選択肢1: ユーザー自身のチャンネル -->
+            <div class="border rounded-lg p-4 <%= @can_upload_to_user_channel ? '' : 'opacity-60' %>">
+              <div class="flex items-start gap-4">
+                <input type="radio" 
+                       name="upload_destination" 
+                       value="user_channel" 
+                       class="radio radio-primary mt-1"
+                       id="user_channel"
+                       <%= 'disabled' unless @can_upload_to_user_channel %>>
+                <div class="flex-1">
+                  <label for="user_channel" class="font-bold cursor-pointer">
+                    自分のYouTubeチャンネル
+                  </label>
+                  <p class="text-sm text-gray-600 mt-1">
+                    あなた自身のチャンネルに動画をアップロードします。<br>
+                    動画の所有権はあなたにあり、自由に編集・削除できます。
+                  </p>
+                  
+                  <% unless @can_upload_to_user_channel %>
+                    <div class="mt-2">
+                      <%= link_to "YouTube認証", youtube_auth_path, class: "btn btn-sm btn-primary" %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 選択肢2: アプリ専用チャンネル -->
+            <div class="border rounded-lg p-4 border-primary">
+              <div class="flex items-start gap-4">
+                <input type="radio" 
+                       name="upload_destination" 
+                       value="app_channel" 
+                       class="radio radio-primary mt-1"
+                       id="app_channel"
+                       checked>
+                <div class="flex-1">
+                  <label for="app_channel" class="font-bold cursor-pointer">
+                    Mysicコミュニティチャンネル
+                  </label>
+                  <p class="text-sm text-gray-600 mt-1">
+                    Mysic専用チャンネルに動画をアップロードします。<br>
+                    他のユーザーと作品を共有できます。
+                  </p>
+                  <p class="text-xs text-warning mt-1">
+                    ※ 1日のアップロード上限があります（先着順）
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <%= form_with url: upload_to_youtube_video_generation_path(@video_generation), 
+                        method: :post, 
+                        id: "youtube-upload-form",
+                        class: "mt-6" do |f| %>
+            <%= f.hidden_field :destination, value: 'app_channel', id: 'destination_field' %>
+            
+            <div class="card-actions justify-end">
+              <%= f.submit "YouTubeにアップロード", 
+                          class: "btn btn-success btn-lg w-full",
+                          id: "youtube-upload-btn",
+                          disabled: true,
+                          data: { confirm: "YouTubeにアップロードしますか？\n\n楽曲情報と著作権表記を確認してください。" } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <script>
+        // チェックボックスがすべてチェックされたらボタンを有効化
+        const checkboxes = document.querySelectorAll('#check-song-info, #check-copyright, #check-content-id');
+        const uploadBtn = document.getElementById('youtube-upload-btn');
+        
+        function updateButtonState() {
+          const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+          uploadBtn.disabled = !allChecked;
+        }
+        
+        checkboxes.forEach(checkbox => {
+          checkbox.addEventListener('change', updateButtonState);
         });
-      });
-    </script>
+        
+        // ラジオボタンの変更を反映
+        document.querySelectorAll('input[name="upload_destination"]').forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            document.getElementById('destination_field').value = e.target.value;
+          });
+        });
+      </script>
+    <% end %>
   <% end %>
   
   <!-- YouTubeアップロード中 -->
