@@ -6,7 +6,7 @@
     <div class="card text-center pt-5 mx-auto" style="width: 23rem;">
       <h1>ログイン画面</h1>
       <div class="card-body">
-        <%= form_with model: @user, url: session_path(resource_name), local: true do |f| %>
+        <%= form_with model: @user, url: session_path, local: true do |f| %>
           <div class="mb-3 mt-4">
             <%= f.email_field :email, class: "form-control", placeholder: "Eメール" %>
           </div>
@@ -26,6 +26,9 @@
       <div class="card-text">
         アカウントを持っていない？
         <%= link_to "新規登録", new_user_registration_path, class: "fs-6 my-4 text-decoration-none text-info" %>
+      </div>
+      <div class="text-center mt-4">
+        <%= link_to "パスワードを忘れた方", new_password_path, class: "link link-primary text-sm" %>
       </div>
     </div>
   </div>
