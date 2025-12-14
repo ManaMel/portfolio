@@ -10,7 +10,7 @@
         パスワード再設定用のリンクをお送りします。
       </p>
 
-      <%= form_for(url: password_path, html: { method: :post }) do |f| %>
+      <%= form_with model: resource, as: resource_name, url: user_password_path, html: { method: :post } do |f| %>
         <%= render "devise/shared/error_messages", resource: resource %>
 
         <!-- メールアドレス -->
@@ -29,9 +29,9 @@
       <div class="divider">または</div>
       
       <div class="text-center space-y-2">
-        <%= link_to "ログイン", new_session_path, class: "link link-primary" %>
+        <%= link_to "ログイン", new_user_session_path, class: "link link-primary" %>
         <br>
-        <%= link_to "新規登録", new_registration_path, class: "link link-primary" %>
+        <%= link_to "新規登録", new_user_registration_path, class: "link link-primary" %>
       </div>
     </div>
   </div>

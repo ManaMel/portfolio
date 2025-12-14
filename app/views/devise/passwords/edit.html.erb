@@ -5,7 +5,7 @@
     <div class="card-body">
       <h2 class="card-title text-2xl justify-center mb-6">新しいパスワードを設定</h2>
 
-      <%= form_for(url: password_path html: { method: :put }) do |f| %>
+      <%= form_with model: resource, as: resource_name, url: user_password_path, html: { method: :put }, local: true do |f| %>
         <%= render "devise/shared/error_messages", resource: resource %>
         <%= f.hidden_field :reset_password_token %>
 
@@ -36,7 +36,7 @@
       <div class="divider">または</div>
       
       <div class="text-center">
-        <%= link_to "ログイン", new_session_path, class: "link link-primary" %>
+        <%= link_to "ログイン", new_user_session_path, class: "link link-primary" %>
       </div>
     </div>
   </div>

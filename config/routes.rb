@@ -60,9 +60,13 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => "/admin/sidekiq"
   end
 
-  devise_for :users, only: [ :sessions, :registrations ], controllers: {
+  # 開発環境でのみマウント
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
+  devise_for :users, only: [ :sessions, :registrations, :passwords ], controllers: {
     registrations: "users/registrations",
-    sessions: "users/sessions"
+    sessions: "users/sessions",
+
   }
   get "home/index"
   resources :users, only: [ :index ]
