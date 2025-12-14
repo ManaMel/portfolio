@@ -2,6 +2,7 @@ require "tempfile"
 
 class RecordingsController < ApplicationController
   before_action :authenticate_user!
+  before_action :set_selected_video
   before_action :set_recording, only: [ :show, :update, :select_accompaniment, :update_accompaniment, :mix, :destroy ]
 
   def index
@@ -135,5 +136,11 @@ class RecordingsController < ApplicationController
 
   def recording_params
     params.require(:recording).permit(:title, :original_audio, :accompaniment, :recording_delay, :vocal_gain)
+  end
+
+  def set_selected_video
+    if session[:selected_video_id].present?
+      @selected_video = current_user.videos.find_by(id: session[:selected_video_id])
+    end
   end
 end

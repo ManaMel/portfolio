@@ -12,7 +12,7 @@ amazon:
   access_key_id: <%= ENV["AWS_ACCESS_KEY_ID"] %>
   secret_access_key: <%= ENV["AWS_SECRET_ACCESS_KEY"] %>
   region: <%= ENV["AWS_REGION"] %>
-  bucket: <%= ENV["S3_BUCKET_NAME"] %>
+  bucket: <%= ENV["AWS_S3_BUCKET"] %>
   # public: true # ユーザーに直接配信する場合はtrue
 
 production:

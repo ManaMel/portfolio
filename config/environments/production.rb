@@ -80,7 +80,24 @@ Rails.application.configure do
   # caching is enabled.
   config.action_mailer.perform_caching = false
 
-  config.action_mailer.default_url_options = { host: "https://portfolio-kjxq.onrender.com" }
+  # Deviseメール設定
+  config.action_mailer.default_url_options = { 
+    host: 'portfolio-kjxq.onrender.com',
+    protocol: 'https'
+  }
+
+  # SendGrid設定
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.smtp_settings = {
+    address:              'smtp.sendgrid.net',
+    port:                 587,
+    domain:               'portfolio-kjxq.onrender.com',
+    user_name:            'apikey',
+    password:             ENV['SENDGRID_API_KEY'],
+    authentication:       'plain',
+    enable_starttls_auto: true
+  }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

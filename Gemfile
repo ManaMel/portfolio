@@ -51,6 +51,10 @@ gem "sidekiq"
 
 gem "aws-sdk-s3", require: false
 
+gem "google-api-client"
+
+gem "signet"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -70,6 +74,8 @@ group :development do
   gem "dotenv-rails"
   gem "pry-rails"
   gem "pry-byebug"
+  gem 'letter_opener'
+  gem 'letter_opener_web', '~> 2.0'
 end
 
 group :test do

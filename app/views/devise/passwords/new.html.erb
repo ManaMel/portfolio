@@ -1,16 +1,38 @@
-<h2>Forgot your password?</h2>
+<%= render 'layouts/header' %>
 
-<%= form_with model: @user, url: password_path(resource_name), html: { method: :post }, local: true do |f| %>
-  <%= render "devise/shared/error_messages", resource: resource %>
+<div class="container mx-auto px-4 py-8 max-w-md">
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-2xl justify-center mb-6">パスワードリセット</h2>
+      
+      <p class="text-sm text-gray-600 mb-6">
+        登録されているメールアドレスを入力してください。<br>
+        パスワード再設定用のリンクをお送りします。
+      </p>
 
-  <div class="field">
-    <%= f.label :email %><br />
-    <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
+      <%= form_with model: resource, as: resource_name, url: user_password_path, html: { method: :post } do |f| %>
+        <%= render "devise/shared/error_messages", resource: resource %>
+
+        <!-- メールアドレス -->
+        <div class="form-control mb-4">
+          <%= f.label :email, "メールアドレス", class: "label" %>
+          <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "input input-bordered w-full", placeholder: "example@example.com" %>
+        </div>
+
+        <!-- 送信ボタン -->
+        <div class="form-control mt-6">
+          <%= f.submit "リセットリンクを送信", class: "btn btn-primary btn-block" %>
+        </div>
+      <% end %>
+
+      <!-- その他のリンク -->
+      <div class="divider">または</div>
+      
+      <div class="text-center space-y-2">
+        <%= link_to "ログイン", new_user_session_path, class: "link link-primary" %>
+        <br>
+        <%= link_to "新規登録", new_user_registration_path, class: "link link-primary" %>
+      </div>
+    </div>
   </div>
-
-  <div class="actions">
-    <%= f.submit "Send me reset password instructions" %>
-  </div>
-<% end %>
-
-<%= render "devise/shared/links" %>
+</div>

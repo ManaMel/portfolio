@@ -5,6 +5,12 @@ Rails.application.routes.draw do
   unauthenticated do
     root to: "static_pages#top"
   end
+  
+  # YouTube認証
+  get '/youtube/auth', to: 'youtube_auth#new', as: :youtube_auth
+  get '/youtube/callback', to: 'youtube_auth#callback', as: :youtube_callback
+  # アプリチャンネル用（一時的）
+  get '/youtube/app_channel_callback', to: 'youtube_auth#app_channel_callback', as: :youtube_app_channel_callback
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
@@ -28,10 +34,22 @@ Rails.application.routes.draw do
         get :search
       end
     end
+
     resources :guidelines, only: [ :index ]
-    resources :video_generations, only: [ :index ] do
-      post :generate_audio, on: :collection
+
+    get '/terms', to: 'pages#terms', as: :terms
+    get '/privacy', to: 'pages#privacy', as: :privacy
+    get '/contact', to: 'pages#contact', as: :contact
+    post '/contact', to: 'pages#create_contact'
+
+    resources :video_generations do
+      member do
+        post :generate
+        post :upload_to_youtube
+        get :status
+      end
     end
+
     resource :mypage, only: [ :show, :edit, :update ]
     namespace :admin do
       resources :dashboards, only: %i[index]
@@ -42,9 +60,13 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => "/admin/sidekiq"
   end
 
-  devise_for :users, only: [ :sessions, :registrations ], controllers: {
+  # 開発環境でのみマウント
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
+  devise_for :users, only: [ :sessions, :registrations, :passwords ], controllers: {
     registrations: "users/registrations",
-    sessions: "users/sessions"
+    sessions: "users/sessions",
+
   }
   get "home/index"
   resources :users, only: [ :index ]

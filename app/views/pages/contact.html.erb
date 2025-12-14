@@ -1,0 +1,74 @@
+<%= render 'layouts/header' %>
+
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+  <h1 class="text-4xl font-bold text-center mb-8">お問い合わせ</h1>
+  
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <p class="text-gray-700 mb-6">
+        Mysicに関するご質問・ご要望・不具合報告などは、以下のフォームよりお送りください。<br>
+        できる限り早急に対応させていただきます。
+      </p>
+
+      <%= form_with url: contact_path, method: :post, class: "space-y-6" do |f| %>
+        <!-- 名前 -->
+        <div class="form-control">
+          <%= label_tag :name, "お名前", class: "label" %>
+          <%= text_field_tag :name, nil, class: "input input-bordered w-full", placeholder: "山田 太郎", required: true %>
+        </div>
+
+        <!-- メールアドレス -->
+        <div class="form-control">
+          <%= label_tag :email, "メールアドレス", class: "label" %>
+          <%= email_field_tag :email, nil, class: "input input-bordered w-full", placeholder: "example@example.com", required: true %>
+          <label class="label">
+            <span class="label-text-alt text-gray-500">返信先のメールアドレスを入力してください</span>
+          </label>
+        </div>
+
+        <!-- 件名 -->
+        <div class="form-control">
+          <%= label_tag :subject, "件名", class: "label" %>
+          <%= select_tag :subject, 
+              options_for_select([
+                "お問い合わせ内容を選択してください",
+                "機能に関する質問",
+                "不具合の報告",
+                "要望・提案",
+                "著作権に関する問い合わせ",
+                "アカウントに関する問い合わせ",
+                "その他"
+              ]), 
+              class: "select select-bordered w-full", 
+              required: true %>
+        </div>
+
+        <!-- メッセージ -->
+        <div class="form-control">
+          <%= label_tag :message, "お問い合わせ内容", class: "label" %>
+          <%= text_area_tag :message, nil, class: "textarea textarea-bordered w-full", rows: 8, placeholder: "できるだけ詳しくご記入ください", required: true %>
+        </div>
+
+        <!-- 注意事項 -->
+        <div class="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="text-sm">
+            <p>・ 返信には数日かかる場合があります</p>
+            <p>・ 内容によっては返信できない場合があります</p>
+          </div>
+        </div>
+
+        <!-- 送信ボタン -->
+        <div class="form-control">
+          <%= submit_tag "送信する", class: "btn btn-primary btn-lg w-full" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center">
+    <%= link_to "← トップページに戻る", root_path, class: "btn btn-ghost" %>
+  </div>
+</div>
