@@ -82,30 +82,53 @@ class VideoGenerationsController < ApplicationController
 
   # YouTubeアップロード開始
   def upload_to_youtube
-    unless @video_generation.has_song_info?
-      redirect_to edit_video_generation_path(@video_generation), alert: 'YouTubeアップロード前に楽曲情報を入力してください。'
-      return
-    end
-
-    unless @video_generation.ready_for_youtube_upload?
-      redirect_to @video_generation, alert: '動画がまだ生成されていません。'
-      return
-    end
-    
-    destination = params[:destination] # 'user_channel' or 'app_channel'
-    
-    # ユーザーチャンネルを選択したが認証されていない場合
-    if destination == 'user_channel' && !current_user.youtube_authenticated?
-      redirect_to youtube_auth_path, alert: 'YouTube認証が必要です。'
-      return
-    end
-    
-    @video_generation.update!(upload_destination: destination)
-    
-    YoutubeUploadJob.perform_later(@video_generation.id)
-    
-    redirect_to @video_generation, notice: 'YouTubeへのアップロードを開始しました。'
+  unless @video_generation.has_song_info?
+    redirect_to edit_video_generation_path(@video_generation), alert: 'YouTubeアップロード前に楽曲情報を入力してください。'
+    return
   end
+
+  # デバッグ用：詳細な状態チェック
+  unless @video_generation.status == 'generated'
+    redirect_to @video_generation, alert: "動画のステータスが不正です（現在: #{@video_generation.status}）"
+    return
+  end
+
+  unless @video_generation.generated_video.attached?
+    redirect_to @video_generation, alert: '動画ファイルが見つかりません。先に動画を生成してください。'
+    return
+  end
+  
+  destination = params[:destination] # 'user_channel' or 'app_channel'
+  
+  # ユーザーチャンネルを選択したが認証されていない場合
+  if destination == 'user_channel' && !current_user.youtube_authenticated?
+    redirect_to youtube_auth_path, alert: 'YouTube認証が必要です。'
+    return
+  end
+  
+  @video_generation.update!(upload_destination: destination)
+  
+  begin
+    # ステータスを先に更新
+    @video_generation.update!(status: 'uploading')
+    
+    # 同期的に実行
+    YoutubeUploadJob.perform_now(@video_generation.id)
+    
+    # 成功したらリダイレクト
+    redirect_to @video_generation, notice: 'YouTubeへのアップロードが完了しました！'
+  rescue => e
+    # エラーが発生した場合
+    Rails.logger.error "YouTube Upload Error: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    
+    @video_generation.update!(
+      status: 'failed',
+      error_message: "アップロード失敗: #{e.message}"
+    )
+    redirect_to @video_generation, alert: "アップロードに失敗しました: #{e.message}"
+  end
+end
 
   # 削除
   def destroy

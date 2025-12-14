@@ -1,35 +1,58 @@
-<div class="container home-sections d-flex flex-row justify-content-center
-  align-items-center"
->
-  <div class="login-section pt-3">
-    <div class="card text-center pt-5 mx-auto" style="width: 23rem;">
-      <h1>新規登録</h1>
+<div class="bg-green-800 border-b-4 border-amber-500 py-4 px-6 flex justify-between items-center shadow-md">
+    <h1 class="text-3xl font-serif font-bold text-amber-400">MYSIC</h1>
+</div>
+<div class="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+    <!-- 新規登録カード -->
+    <div class="bg-white rounded-lg shadow-xl p-8 border-t-4 border-green-800">
+      <h1 class="text-3xl font-serif font-bold text-green-800 text-center mb-2">
+        新規登録
+      </h1>
+      <div class="w-16 h-1 bg-amber-400 mx-auto mb-8"></div>
+
       <%= render "devise/shared/error_messages", resource: resource %>
 
-      <div class="card-body">
-        <%= form_with model: @user, url: registration_path(resource_name), local: true do |f| %>
-          <div class="mb-3 mt-4">
-            <%= f.email_field :email, class: "form-control", placeholder: "Eメール" %>
-          </div>
+      <%= form_with model: @user, url: registration_path(resource_name), local: true, class: "space-y-4" do |f| %>
+        <div>
+          <%= f.label :email, "メールアドレス", class: "block text-sm font-semibold text-green-800 mb-2" %>
+          <%= f.email_field :email, 
+              autofocus: true,
+              autocomplete: "email",
+              class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-800 focus:outline-none transition",
+              placeholder: "例: user@example.com" %>
+        </div>
 
-          <div class="mb-3">
-            <%= f.password_field :password, class: "form-control", placeholder: "パスワード" %>
-          </div>
+        <div>
+          <%= f.label :password, "パスワード", class: "block text-sm font-semibold text-green-800 mb-2" %>
+          <%= f.password_field :password, 
+              autocomplete: "new-password",
+              class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-800 focus:outline-none transition",
+              placeholder: "6文字以上" %>
+          <% if @minimum_password_length %>
+            <p class="text-xs text-gray-500 mt-1">※ <%= @minimum_password_length %>文字以上</p>
+          <% end %>
+        </div>
 
-          <div class="mb-3">
-            <%= f.password_field :password_confirmation, class: "form-control", placeholder: "パスワード確認" %>
-          </div>
+        <div>
+          <%= f.label :password_confirmation, "パスワード（確認）", class: "block text-sm font-semibold text-green-800 mb-2" %>
+          <%= f.password_field :password_confirmation, 
+              autocomplete: "new-password",
+              class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-800 focus:outline-none transition",
+              placeholder: "もう一度入力" %>
+        </div>
 
-          <%= f.submit "新規登録", class: "btn btn-primary w-100" %>
-        <% end %>
-      </div>
+        <%= f.submit "新規登録", 
+            class: "w-full py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg shadow-md transition duration-300 cursor-pointer" %>
+      <% end %>
     </div>
 
-    <div class="card text-center py-2 mt-3 mx-auto" style="width: 23rem;">
-      <div class="card-text">
-        既にアカウントを持っている？
-        <%= link_to "ログイン", new_user_session_path, class: "fs-6 my-4 text-decoration-none text-info" %>
-      </div>
+    <!-- ログインへのリンク -->
+    <div class="bg-white rounded-lg shadow-md p-4 mt-4 text-center border-l-4 border-green-800">
+      <p class="text-gray-700">
+        既にアカウントをお持ちの方は
+        <%= link_to "ログイン", new_user_session_path, 
+            class: "font-semibold text-green-700 hover:text-green-900 hover:underline" %>
+      </p>
     </div>
   </div>
 </div>

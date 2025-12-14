@@ -1,16 +1,64 @@
-<div class="relative min-h-[45vh] bg-cover bg-center" style="background-image: url(/top-background.jpg)">
-      <div class="absolute inset-0 bg-black/40"><p class="text-black w-48 bg-white/50 text-2xl text-center">自分だけの音楽、世界に一つのMysic。</p></div>
-    <button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログイン", new_user_session_path %></button>      
+<div class="bg-green-800 border-b-4 border-amber-500 py-4 px-6 flex justify-between items-center shadow-md">
+    <h1 class="text-3xl font-serif font-bold text-amber-400">MYSIC</h1>
 </div>
+<div class="min-h-screen bg-gray-100">
+  <!-- ヒーローセクション -->
+  <div class="relative h-[60vh] bg-cover bg-center" style="background-image: url(/top-background.jpg)">
+    <div class="absolute inset-0 bg-black/50"></div>
+    
+    <div class="relative z-10 h-full flex items-center justify-center px-4">
+      <div class="bg-white/95 rounded-lg p-8 shadow-2xl border-4 border-amber-500 max-w-xl text-center">
+        <h1 class="text-3xl font-serif font-bold text-green-800 mb-6">
+          自分だけの音楽、<br>世界に一つの<span class="text-amber-500">Mysic</span>。
+        </h1>
+        <div class="space-x-4">
+          <%= link_to "ログイン", new_user_session_path, 
+              class: "px-6 py-3 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded shadow-lg transition" %>
+          <%= link_to "新規登録", new_user_registration_path, 
+              class: "px-6 py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded shadow-lg transition" %>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div class="text-center text-lg text-green-800 font-semibold">
-  <h1 class="underline">クリエイティブを支える5つのステップ</h1><br>
-  <h2>録音 : 歌声や演奏をその場で録音</h2>
-  <h2>伴奏再生 : YouTubeの伴奏に合わせてパフォーマンス</h2>
-  <h2>簡易編集 : 録音を聴き直して調整・保存</h2>
-  <h2>仲間とつながる : 音楽仲間を見つけて交流</h2>
-  <h2>投稿サポート : YouTubeへの投稿をカンタンに</h2><br>
-<button class="absolute center-1 btn btn-success">
-<%= link_to "新規登録", new_user_registration_path %>
-</button>
+  <!-- 5つのステップ -->
+  <div class="max-w-3xl mx-auto px-4 py-16">
+    <div class="bg-white rounded-lg shadow-xl p-8 border-t-4 border-green-800">
+      <h2 class="text-2xl font-serif text-green-800 text-center mb-8 pb-4 border-b-2 border-amber-400">
+        クリエイティブを支える5つのステップ
+      </h2>
+
+      <div class="space-y-4">
+        <div class="p-4 border-l-4 border-green-800 bg-gray-50">
+          <h3 class="font-semibold text-green-800">1. 録音</h3>
+          <p class="text-gray-700">歌声や演奏をその場で録音</p>
+        </div>
+
+        <div class="p-4 border-l-4 border-green-800 bg-gray-50">
+          <h3 class="font-semibold text-green-800">2. 伴奏再生</h3>
+          <p class="text-gray-700">YouTubeの伴奏に合わせてパフォーマンス</p>
+        </div>
+
+        <div class="p-4 border-l-4 border-green-800 bg-gray-50">
+          <h3 class="font-semibold text-green-800">3. 簡易編集</h3>
+          <p class="text-gray-700">録音を聴き直して調整・保存</p>
+        </div>
+
+        <div class="p-4 border-l-4 border-green-800 bg-gray-50">
+          <h3 class="font-semibold text-green-800">4. 仲間とつながる</h3>
+          <p class="text-gray-700">音楽仲間を見つけて交流</p>
+        </div>
+
+        <div class="p-4 border-l-4 border-green-800 bg-gray-50">
+          <h3 class="font-semibold text-green-800">5. 投稿サポート</h3>
+          <p class="text-gray-700">YouTubeへの投稿をカンタンに</p>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <%= link_to "今すぐ始める", new_user_registration_path, 
+            class: "inline-block px-10 py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg shadow-lg transition" %>
+      </div>
+    </div>
+  </div>
 </div>

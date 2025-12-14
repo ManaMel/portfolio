@@ -26,6 +26,21 @@ class VideosController < ApplicationController
     render :index
   end
 
+  def autocomplete
+    keyword = params[:q]
+    return render json: [] if keyword.blank? || keyword.length < 3
+
+    results = YoutubeSearchServise.new(keyword).search
+
+    render json: results.take(5).map { |video|
+      {
+      label: video[:title],
+      value: video[:youtube_url],
+      channel: video[:channel]
+      }
+    }
+  end
+
   private
   def video_params
     params.require(:video).permit(:video_url, :title, :channel)

@@ -1,9 +1,39 @@
-<%= render 'layouts/header' %><br>
-<button class="absolute top-4 right-4 btn btn-success"><%= link_to "ログアウト", destroy_user_session_path, data: { turbo_method: :delete } %></button>
-<div class="flex flex-col justify-center items-center space-y-4">
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 録音する", recordings_path %></button>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 伴奏再生する", videos_path %></button>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to "♪ 動画作成する", video_generations_path %></button>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to"♪ 投稿ガイドライン", guidelines_path %></button>
-  <button class="btn btn-wide btn-outline btn-warning"><%= link_to"♪ マイページ", mypage_path %></button>
+<%= render 'layouts/header' %>
+
+<div class="min-h-screen bg-gray-100">
+  <!-- メインコンテンツ -->
+  <div class="max-w-2xl mx-auto px-4 py-16">
+    <div class="bg-white rounded-lg shadow-xl p-8 border-t-4 border-green-800">
+      <h2 class="text-2xl font-serif text-green-800 text-center mb-8 pb-4 border-b-2 border-amber-400">
+        メニュー
+      </h2>
+
+      <div class="space-y-4">
+        <%= link_to recordings_path, 
+            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
+          <span class="text-xl mr-2">♪</span> 録音する
+        <% end %>
+
+        <%= link_to videos_path, 
+            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
+          <span class="text-xl mr-2">♪</span> 伴奏再生する
+        <% end %>
+
+        <%= link_to video_generations_path, 
+            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
+          <span class="text-xl mr-2">♪</span> 動画作成する
+        <% end %>
+
+        <%= link_to guidelines_path, 
+            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
+          <span class="text-xl mr-2">♪</span> 投稿ガイドライン
+        <% end %>
+
+        <%= link_to mypage_path, 
+            class: "block w-full px-6 py-4 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg border-2 border-green-800 shadow-lg transition duration-300" do %>
+          <span class="text-xl mr-2">♪</span> マイページ
+        <% end %>
+      </div>
+    </div>
+  </div>
 </div>

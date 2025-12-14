@@ -6,13 +6,20 @@ class YoutubeUploadJob < ApplicationJob
     
     Rails.logger.info "YoutubeUploadJob: Start uploading video ##{video_generation_id}"
     
-    # アップロード準備ができているかチェック
-    unless video_gen.ready_for_youtube_upload?
-      raise "Video not ready for upload"
+    # ステータスチェックを削除（コントローラー側で既にチェック済み）
+    # unless video_gen.ready_for_youtube_upload?
+    #   raise "Video not ready for upload"
+    # end
+    
+    # より具体的なチェック
+    unless video_gen.generated_video.attached?
+      raise "Generated video file is not attached"
     end
     
-    # ステータスを「アップロード中」に変更
-    video_gen.update!(status: :uploading)
+    # ステータスが既に'uploading'になっている場合はスキップ
+    unless video_gen.status == 'uploading'
+      video_gen.update!(status: :uploading)
+    end
     
     # アップロード実行
     uploader = YoutubeUploader.new(video_gen)
