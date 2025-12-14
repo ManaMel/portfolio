@@ -12,6 +12,7 @@
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@hotwired/turbo-rails": "^8.0.16",
+    "stimulus-autocomplete": "^3.1.0",
     "tailwindcss": "3.4.3",
     "wavesurfer.js": "^7.11.1"
   }

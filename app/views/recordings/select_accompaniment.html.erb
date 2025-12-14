@@ -1,58 +1,50 @@
 <%= render 'layouts/header' %>
 
-<div class="container mx-auto p-4 max-w-2xl mt-8">
-  
-  <h1 class="text-3xl font-bold mb-6 text-center text-green-900">伴奏ファイルをアップロード</h1>
-
-  <% if notice.present? %>
-    <div class="alert alert-success shadow-lg mb-4">
-      <div><span><%= notice %></span></div>
+<div class="min-h-screen bg-gray-100">
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    
+    <!-- タイトル -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-serif font-bold text-green-800 mb-2">
+        伴奏ファイルをアップロード
+      </h1>
+      <div class="w-16 h-1 bg-amber-400 mx-auto"></div>
     </div>
-  <% end %>
 
-  <% if alert.present? %>
-    <div class="alert alert-error shadow-lg mb-4">
-      <div><span><%= alert %></span></div>
-    </div>
-  <% end %>
-
-  <%# 現在の録音情報 %>
-  <div class="card bg-base-100 shadow-xl">
-    <div class="card-body">
+    <!-- メインカード -->
+    <div class="bg-white rounded-lg shadow-xl p-8 border-t-4 border-green-800">
       
-      <h2 class="card-title text-2xl mb-4">
+      <h2 class="text-2xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
         <%= @recording.title %>
       </h2>
 
-      <div class="alert alert-info mb-6">
-        <div>
-          <span>この録音に伴奏ファイルをアップロードすると、タイミング調整ができるようになります。</span>
-        </div>
+      <div class="bg-blue-50 border-l-4 border-blue-800 text-blue-800 p-4 rounded mb-6">
+        <p>この録音に伴奏ファイルをアップロードすると、タイミング調整ができるようになります。</p>
       </div>
 
-      <%# 録音情報 %>
-      <div class="bg-gray-50 p-4 rounded-lg mb-6">
-        <p class="text-sm text-gray-600 mb-2">
-          録音ファイル: 
+      <!-- 録音情報 -->
+      <div class="bg-gray-50 p-5 rounded-lg mb-6 border-l-4 border-amber-500">
+        <p class="text-sm text-gray-700 mb-3">
+          <span class="font-semibold">録音ファイル:</span>
           <% if @recording.original_audio.attached? %>
-            <span class="text-green-600 font-semibold">✓ あり</span>
+            <span class="text-green-700 font-semibold">✓ あり</span>
             <span class="text-xs text-gray-500">(<%= number_to_human_size(@recording.original_audio.byte_size) %>)</span>
           <% else %>
             <span class="text-red-600">✗ なし</span>
           <% end %>
         </p>
-        <p class="text-sm text-gray-600">
-          伴奏ファイル: 
+        <p class="text-sm text-gray-700">
+          <span class="font-semibold">伴奏ファイル:</span>
           <% if @recording.accompaniment.attached? %>
-            <span class="text-green-600 font-semibold">✓ <%= @recording.accompaniment.filename %></span>
+            <span class="text-green-700 font-semibold">✓ <%= @recording.accompaniment.filename %></span>
             <span class="text-xs text-gray-500">(<%= number_to_human_size(@recording.accompaniment.byte_size) %>)</span>
           <% else %>
-            <span class="text-orange-600">⚠ 未設定</span>
+            <span class="text-amber-600">⚠ 未設定</span>
           <% end %>
         </p>
       </div>
 
-      <%# 伴奏アップロードフォーム %>
+      <!-- 伴奏アップロードフォーム -->
       <%= form_with(
         model: @recording, 
         url: update_accompaniment_recording_path(@recording), 
@@ -60,27 +52,33 @@
         data: { turbo: false }
       ) do |f| %>
         
-        <div class="form-control mb-6">
-          <%= f.label :accompaniment, "伴奏ファイルを選択", class: "label" %>
-          <label class="label">
-            <span class="label-text-alt text-gray-500">対応形式: MP3, WAV, OGG, M4A など</span>
-          </label>
+        <div class="mb-6">
+          <%= f.label :accompaniment, "伴奏ファイルを選択", class: "block text-sm font-semibold text-green-800 mb-2" %>
+          <p class="text-xs text-gray-500 mb-3">対応形式: MP3, WAV, OGG, M4A など</p>
           <%= f.file_field :accompaniment, 
               accept: "audio/*", 
-              class: "file-input file-input-bordered file-input-primary w-full",
+              class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-800 focus:outline-none transition",
               required: true %>
         </div>
 
-        <div class="card-actions justify-between items-center">
-          <%= link_to "キャンセル", mypage_path, class: "btn btn-ghost" %>
+        <div class="flex justify-between items-center">
+          <%= link_to "キャンセル", mypage_path, 
+              class: "px-6 py-2 text-gray-600 hover:text-gray-800 font-semibold hover:underline transition" %>
           <%= f.submit @recording.accompaniment.attached? ? "伴奏を変更" : "伴奏をアップロード", 
-              class: "btn btn-primary", 
+              class: "px-8 py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg shadow-md transition duration-300", 
               data: { disable_with: "アップロード中..." } %>
         </div>
 
       <% end %>
 
     </div>
-  </div>
 
+    <!-- ホームへ戻る -->
+    <div class="text-center py-8">
+      <%= link_to root_path, 
+          class: "inline-block px-8 py-3 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300" do %>
+        ♪ ホームへ戻る
+      <% end %>
+    </div>
+  </div>
 </div>

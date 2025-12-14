@@ -1,3 +1,6 @@
-<header class ='h-[60px] bg-emerald-900 text-yellow-200 font-semibold text-xl'>
-  <h1>♪Mysic</h1>
-</header>
+<div class="bg-green-800 border-b-4 border-amber-500 py-4 px-6 flex justify-between items-center shadow-md">
+  <h1 class="text-3xl font-serif font-bold text-amber-400">MYSIC</h1>
+  <%= link_to "ログアウト", destroy_user_session_path, 
+      data: { turbo_method: :delete },
+      class: "px-5 py-2 bg-amber-500 hover:bg-amber-600 text-green-900 font-semibold rounded shadow-lg transition duration-300" %>
+</div>
