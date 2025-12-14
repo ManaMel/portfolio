@@ -15,6 +15,16 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+
+    <title>Mysic</title>
+
+    <meta property="og:title" content="Mysic" />
+    <meta property="og:description" content="私の音楽を世界に♪" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%= request.original_url %>" />
+    <meta property="og:image" content="<%= image_url('ogp.png') %>" />
+
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
 
   <body>
