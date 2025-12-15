@@ -19,11 +19,6 @@ class RecordingsController < ApplicationController
     end
   end
 
-  def new
-    @recording = Recording.new
-    @selected_video = current_user.videos.last
-  end
-
   def create
     @recording = current_user.recordings.new(recording_params)
     @recording.status = :created

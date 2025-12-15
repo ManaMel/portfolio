@@ -6,6 +6,11 @@ Rails.application.routes.draw do
     root to: "static_pages#top"
   end
   
+  get '/terms', to: 'pages#terms', as: :terms
+  get '/privacy', to: 'pages#privacy', as: :privacy
+  get '/contact', to: 'pages#contact', as: :contact
+  post '/contact', to: 'pages#create_contact'
+  
   # YouTube認証
   get '/youtube/auth', to: 'youtube_auth#new', as: :youtube_auth
   get '/youtube/callback', to: 'youtube_auth#callback', as: :youtube_callback
@@ -14,7 +19,7 @@ Rails.application.routes.draw do
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
-    resources :recordings, only: [ :index, :new, :create, :update, :show, :destroy ] do
+    resources :recordings, only: [ :index, :create, :update, :show, :destroy ] do
       collection do
         post :post
     end
@@ -38,10 +43,6 @@ Rails.application.routes.draw do
 
     resources :guidelines, only: [ :index ]
 
-    get '/terms', to: 'pages#terms', as: :terms
-    get '/privacy', to: 'pages#privacy', as: :privacy
-    get '/contact', to: 'pages#contact', as: :contact
-    post '/contact', to: 'pages#create_contact'
 
     resources :video_generations do
       member do
@@ -51,7 +52,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resource :mypage, only: [ :show, :edit, :update ]
+    resource :mypage, only: [ :show, :update ] # edit
     namespace :admin do
       resources :dashboards, only: %i[index]
     end
