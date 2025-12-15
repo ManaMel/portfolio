@@ -120,10 +120,10 @@
         </div>
       <% else %>
         <div class="text-center py-12">
-          <div class="text-6xl mb-4">🎵</div>
+          <div class="text-6xl mb-4"></div>
           <p class="text-xl text-gray-600 mb-2">まだ録音がありません</p>
           <p class="text-gray-500 mb-6">最初の録音を作成してみましょう！</p>
-          <%= link_to new_recording_path, 
+          <%= link_to recordings_path, 
               class: "inline-block px-8 py-3 bg-green-800 hover:bg-green-700 text-amber-300 font-bold rounded-lg shadow-lg transition duration-300" do %>
             ♪ 最初の録音を作成
           <% end %>
