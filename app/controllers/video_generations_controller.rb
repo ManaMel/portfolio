@@ -87,7 +87,6 @@ class VideoGenerationsController < ApplicationController
     return
   end
 
-  # デバッグ用：詳細な状態チェック
   unless @video_generation.status == 'generated'
     redirect_to @video_generation, alert: "動画のステータスが不正です（現在: #{@video_generation.status}）"
     return
