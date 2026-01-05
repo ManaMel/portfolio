@@ -45,7 +45,7 @@ services:
     ports:
       - "6379:6379"
   
-  # ========== 追加: Sidekiq Worker ==========
+  # ========== Sidekiq Worker ==========
   worker:
     build:
       context: .
