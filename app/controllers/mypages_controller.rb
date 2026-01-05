@@ -11,14 +11,14 @@ class MypagesController < ApplicationController
     # @profile = current_user.profile || current_user.build_profile
   # end
 
-  def update
-    @profile = current_user.profile || current_user.build_profile
-    if @profile.update(profile_params)
-        redirect_to mypage_path, notice: "プロフィールを更新しました"
-    else
-        render :edit
-    end
-  end
+  # def update
+    # @profile = current_user.profile || current_user.build_profile
+    # if @profile.update(profile_params)
+        # redirect_to mypage_path, notice: "プロフィールを更新しました"
+    # else
+        # render :edit
+    # end
+  # end
 
   private
 

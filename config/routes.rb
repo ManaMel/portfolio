@@ -52,7 +52,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resource :mypage, only: [ :show, :update ] # edit
+    resource :mypage, only: [ :show ] # edit # update
     namespace :admin do
       resources :dashboards, only: %i[index]
     end
