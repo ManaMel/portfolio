@@ -81,21 +81,21 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
 
   # Deviseメール設定
-  config.action_mailer.default_url_options = { 
-    host: 'portfolio-kjxq.onrender.com',
-    protocol: 'https'
+  config.action_mailer.default_url_options = {
+    host: "portfolio-kjxq.onrender.com",
+    protocol: "https"
   }
 
   # SendGrid設定
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.perform_deliveries = true
   config.action_mailer.smtp_settings = {
-    address:              'smtp.sendgrid.net',
+    address:              "smtp.sendgrid.net",
     port:                 587,
-    domain:               'portfolio-kjxq.onrender.com',
-    user_name:            'apikey',
-    password:             ENV['SENDGRID_API_KEY'],
-    authentication:       'plain',
+    domain:               "portfolio-kjxq.onrender.com",
+    user_name:            "apikey",
+    password:             ENV["SENDGRID_API_KEY"],
+    authentication:       "plain",
     enable_starttls_auto: true
   }
 

@@ -5,17 +5,17 @@ Rails.application.routes.draw do
   unauthenticated do
     root to: "static_pages#top"
   end
-  
-  get '/terms', to: 'pages#terms', as: :terms
-  get '/privacy', to: 'pages#privacy', as: :privacy
-  get '/contact', to: 'pages#contact', as: :contact
-  post '/contact', to: 'pages#create_contact'
-  
+
+  get "/terms", to: "pages#terms", as: :terms
+  get "/privacy", to: "pages#privacy", as: :privacy
+  get "/contact", to: "pages#contact", as: :contact
+  post "/contact", to: "pages#create_contact"
+
   # YouTube認証
-  get '/youtube/auth', to: 'youtube_auth#new', as: :youtube_auth
-  get '/youtube/callback', to: 'youtube_auth#callback', as: :youtube_callback
+  get "/youtube/auth", to: "youtube_auth#new", as: :youtube_auth
+  get "/youtube/callback", to: "youtube_auth#callback", as: :youtube_callback
   # アプリチャンネル用（一時的）
-  get '/youtube/app_channel_callback', to: 'youtube_auth#app_channel_callback', as: :youtube_app_channel_callback
+  get "/youtube/app_channel_callback", to: "youtube_auth#app_channel_callback", as: :youtube_app_channel_callback
 
   authenticated :user do
     root to: "home#index", as: :authenticated_root
@@ -67,8 +67,7 @@ Rails.application.routes.draw do
 
   devise_for :users, only: [ :sessions, :registrations, :passwords ], controllers: {
     registrations: "users/registrations",
-    sessions: "users/sessions",
-
+    sessions: "users/sessions"
   }
   get "home/index"
   resources :users, only: [ :index ]

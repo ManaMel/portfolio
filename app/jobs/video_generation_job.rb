@@ -1,4 +1,4 @@
-require 'tempfile'
+require "tempfile"
 
 class VideoGenerationJob < ApplicationJob
   queue_as :default
@@ -21,7 +21,7 @@ class VideoGenerationJob < ApplicationJob
       # 一時ファイルにダウンロード
       audio_path = download_to_temp(video_gen.recording.generated_audio, "audio_#{video_gen.id}")
       image_path = download_to_temp(video_gen.thumbnail_image, "image_#{video_gen.id}")
-      output_path = Rails.root.join('tmp', "video_#{video_gen.id}.mp4").to_s
+      output_path = Rails.root.join("tmp", "video_#{video_gen.id}.mp4").to_s
 
       # FFmpegで動画生成
       generate_video(
@@ -34,7 +34,7 @@ class VideoGenerationJob < ApplicationJob
       video_gen.generated_video.attach(
         io: File.open(output_path),
         filename: "video_#{video_gen.id}.mp4",
-        content_type: 'video/mp4'
+        content_type: "video/mp4"
       )
 
       video_gen.update!(status: :generated)
@@ -45,14 +45,14 @@ class VideoGenerationJob < ApplicationJob
       Rails.logger.error e.backtrace.join("\n")
       video_gen.update!(status: :failed, error_message: e.message)
     ensure
-      cleanup_temp_files([audio_path, image_path, output_path])
+      cleanup_temp_files([ audio_path, image_path, output_path ])
     end
   end
 
   private
 
   def download_to_temp(attachment, filename)
-    temp_file = Tempfile.new([filename, File.extname(attachment.filename.to_s)])
+    temp_file = Tempfile.new([ filename, File.extname(attachment.filename.to_s) ])
     temp_file.binmode
     temp_file.write(attachment.download)
     temp_file.flush
