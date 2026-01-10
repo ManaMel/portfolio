@@ -7,15 +7,20 @@ class SupabaseClient
   SERVICE_ROLE_KEY = ENV["SUPABASE_SERVICE_ROLE_KEY"]
 
   def initialize
+    return if Rails.env.test?
+
     @uri = URI(API_URL)
   end
 
   def get_users
+    return [] if Rails.env.test?
+
     url = URI("#{API_URL}/rest/v1/users")
     req = Net::HTTP::Get.new(url)
     req["apikey"] = SERVICE_ROLE_KEY
     req["Authorization"] = "Bearer #{SERVICE_ROLE_KEY}"
     req["Content-Type"] = "application/json"
+    req.body = user_params.to_json
 
     res = Net::HTTP.start(url.host, url.port, use_ssl: true) do |http|
       http.request(req)
