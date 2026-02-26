@@ -97,6 +97,8 @@ https://www.joysound.com/web/s/mobile/bsj
 
 
 # 使用技術
+| カテゴリ | 技術内容 |
+| --- | --- | 
 | 開発環境 | Docker |
 | サーバーサイド | Ruby 3.2.2 ・ Rails 7.0.4.3 |
 | データベース | PostgreSQL |
