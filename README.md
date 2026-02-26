@@ -97,14 +97,14 @@ https://www.joysound.com/web/s/mobile/bsj
 
 
 # 使用技術
-開発環境 : Docker
-サーバーサイド: Ruby 3.2.2 / Rails 7.0.4.3
-データベース: PostgreSQL
-フロントエンド: JavaScript
-CSSフレームワーク: Tailwind CSS + daisyUI
-音声処理: MediaRecorder API / Web Audio API
-外部サービス連携: YouTube iframe API / YouTube Data API
-ストレージ: Amazon S3
-Webアプリケーションサーバー: Render
-ジョブ管理: Sidekiq / Redis
-その他: GitHub
+| 開発環境 | Docker |
+| サーバーサイド | Ruby 3.2.2 ・ Rails 7.0.4.3 |
+| データベース | PostgreSQL |
+| フロントエンド | JavaScript |
+| CSSフレームワーク | Tailwind CSS + daisyUI |
+| 音声処理 | MediaRecorder API ・ Web Audio API |
+| 外部サービス連携 | YouTube iframe API ・ YouTube Data API |
+| ストレージ | Amazon S3 |
+|Webアプリケーションサーバー | Render |
+| ジョブ管理 | Sidekiq + Redis |
+| その他 | GitHub |
