@@ -110,3 +110,6 @@ https://www.joysound.com/web/s/mobile/bsj
 |Webアプリケーションサーバー | Render |
 | ジョブ管理 | Sidekiq + Redis |
 | その他 | GitHub |
+
+# ER図
+https://drive.google.com/file/d/1ThZgtpTG9KTKxpVP1vJZQuYvRvFEP05f/view?usp=sharing
