@@ -25,7 +25,7 @@ class VideoGeneration < ApplicationRecord
 
   def youtube_description
     desc = []
-    
+
     desc << body if body.present?
     desc << ""
 
@@ -46,24 +46,23 @@ class VideoGeneration < ApplicationRecord
         desc << copyright_notes
         desc << ""
       end
-      
+
       desc << "※この動画はカバー音源です"
       desc << "※原曲の著作権は原作者に帰属します"
     end
-    
+
     if app_channel?
       desc << ""
       desc << "---"
       desc << "Created by: #{user.email}"
       desc << "App: Mysic"
     end
-    
+
     desc << ""
     desc << "#カバー #歌ってみた #Mysic"
-    
+
     desc.join("\n")
   end
-  
 
   def has_song_info?
     song_title.present? && original_artist.present?

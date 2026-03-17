@@ -4,7 +4,7 @@ RSpec.describe 'ユーザーログイン', type: :system do
   before do
     skip 'Docker環境ではSelenium未設定のためスキップ'
   end
-  
+
   it 'ログインできる' do
     User.create!(
       email: 'test@example.com',
