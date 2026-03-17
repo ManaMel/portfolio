@@ -1,39 +1,61 @@
 <%= render 'layouts/header' %>
 
-<div class="min-h-screen bg-gray-100">
-  <!-- メインコンテンツ -->
-  <div class="max-w-2xl mx-auto px-4 py-16">
-    <div class="bg-white rounded-lg shadow-xl p-8 border-t-4 border-green-800">
-      <h2 class="text-2xl font-serif text-green-800 text-center mb-8 pb-4 border-b-2 border-amber-400">
+<div class="min-h-screen bg-stone-50">
+  <div class="max-w-md mx-auto px-5 py-10">
+
+    <div class="text-center mb-8">
+      <p class="text-green-800/60 text-xs font-medium tracking-widest uppercase mb-2">Main Menu</p>
+      <h2 class="text-2xl font-serif font-bold text-green-900 border-b border-amber-300/60 pb-3 inline-block px-6">
         メニュー
       </h2>
-
-      <div class="space-y-4">
-        <%= link_to recordings_path, 
-            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
-          <span class="text-xl mr-2">♪</span> 録音する
-        <% end %>
-
-        <%= link_to videos_path, 
-            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
-          <span class="text-xl mr-2">♪</span> 伴奏再生する
-        <% end %>
-
-        <%= link_to video_generations_path, 
-            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
-          <span class="text-xl mr-2">♪</span> 動画作成する
-        <% end %>
-
-        <%= link_to guidelines_path, 
-            class: "block w-full px-6 py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg border-l-4 border-amber-500 shadow-md transition duration-300" do %>
-          <span class="text-xl mr-2">♪</span> 投稿ガイドライン
-        <% end %>
-
-        <%= link_to mypage_path, 
-            class: "block w-full px-6 py-4 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg border-2 border-green-800 shadow-lg transition duration-300" do %>
-          <span class="text-xl mr-2">♪</span> マイページ
-        <% end %>
-      </div>
     </div>
+
+    <div class="space-y-3">
+      <%= link_to recordings_path,
+          class: "group flex items-center justify-between w-full px-6 py-4 bg-white hover:bg-green-900 border border-stone-200 hover:border-green-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300" do %>
+        <div class="flex items-center gap-3">
+          <span class="text-green-700 group-hover:text-amber-200 text-lg transition-colors duration-300">♪</span>
+          <span class="text-green-900 group-hover:text-amber-100 font-semibold">録音する</span>
+        </div>
+        <span class="text-stone-300 group-hover:text-amber-200/70 transition-colors duration-300">›</span>
+      <% end %>
+
+      <%= link_to videos_path,
+          class: "group flex items-center justify-between w-full px-6 py-4 bg-white hover:bg-green-900 border border-stone-200 hover:border-green-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300" do %>
+        <div class="flex items-center gap-3">
+          <span class="text-green-700 group-hover:text-amber-200 text-lg transition-colors duration-300">♪</span>
+          <span class="text-green-900 group-hover:text-amber-100 font-semibold">伴奏再生する</span>
+        </div>
+        <span class="text-stone-300 group-hover:text-amber-200/70 transition-colors duration-300">›</span>
+      <% end %>
+
+      <%= link_to video_generations_path,
+          class: "group flex items-center justify-between w-full px-6 py-4 bg-white hover:bg-green-900 border border-stone-200 hover:border-green-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300" do %>
+        <div class="flex items-center gap-3">
+          <span class="text-green-700 group-hover:text-amber-200 text-lg transition-colors duration-300">♪</span>
+          <span class="text-green-900 group-hover:text-amber-100 font-semibold">動画作成する</span>
+        </div>
+        <span class="text-stone-300 group-hover:text-amber-200/70 transition-colors duration-300">›</span>
+      <% end %>
+
+      <%= link_to guidelines_path,
+          class: "group flex items-center justify-between w-full px-6 py-4 bg-white hover:bg-green-900 border border-stone-200 hover:border-green-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300" do %>
+        <div class="flex items-center gap-3">
+          <span class="text-green-700 group-hover:text-amber-200 text-lg transition-colors duration-300">♪</span>
+          <span class="text-green-900 group-hover:text-amber-100 font-semibold">投稿ガイドライン</span>
+        </div>
+        <span class="text-stone-300 group-hover:text-amber-200/70 transition-colors duration-300">›</span>
+      <% end %>
+
+      <%= link_to mypage_path,
+          class: "flex items-center justify-between w-full px-6 py-4 bg-green-900 hover:bg-green-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 mt-6" do %>
+        <div class="flex items-center gap-3">
+          <span class="text-amber-200 text-lg">♪</span>
+          <span class="text-amber-100 font-bold">マイページ</span>
+        </div>
+        <span class="text-amber-200/70">›</span>
+      <% end %>
+    </div>
+
   </div>
 </div>
