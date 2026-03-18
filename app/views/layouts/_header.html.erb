@@ -1,6 +1,11 @@
-<div class="bg-green-800 border-b-4 border-amber-500 py-4 px-6 flex justify-between items-center shadow-md">
-  <h1 class="text-3xl font-serif font-bold text-amber-400">MYSIC</h1>
-  <%= link_to "ログアウト", destroy_user_session_path, 
+<header class="bg-green-900 border-b border-amber-200/40 py-3 px-5 flex justify-between items-center shadow-lg">
+  <div class="flex items-center gap-2">
+    <span class="text-amber-200 text-2xl">♪</span>
+    <h1 class="text-2xl font-bold text-amber-200 tracking-widest font-serif">Mysic</h1>
+  </div>
+  <%= link_to destroy_user_session_path,
       data: { turbo_method: :delete },
-      class: "px-5 py-2 bg-amber-500 hover:bg-amber-600 text-green-900 font-semibold rounded shadow-lg transition duration-300" %>
-</div>
+      class: "px-4 py-1.5 border border-amber-200/60 hover:bg-amber-200/20 text-amber-200 text-sm font-medium rounded-full transition duration-300" do %>
+    ログアウト
+  <% end %>
+</header>

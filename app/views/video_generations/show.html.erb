@@ -1,322 +1,276 @@
 <%= render 'layouts/header' %>
 
-<div class="min-h-screen bg-gray-100">
-  <div class="max-w-4xl mx-auto px-4 py-8">
-    
-    <!-- タイトル -->
+<div class="min-h-screen bg-stone-50">
+  <div class="max-w-2xl mx-auto px-5 py-10">
+
+    <!-- ページタイトル -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-serif font-bold text-green-800 mb-2">
+      <p class="text-green-800/50 text-xs font-medium tracking-widest uppercase mb-2">Video Creation</p>
+      <h2 class="text-2xl font-serif font-bold text-green-900 border-b border-amber-300/60 pb-3 inline-block px-6">
         <%= @video_generation.title %>
-      </h1>
-      <div class="w-16 h-1 bg-amber-400 mx-auto"></div>
+      </h2>
     </div>
-    
-    <!-- ステータス表示 -->
-    <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-      <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+
+    <!-- ステータス -->
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+      <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
         ステータス
       </h2>
-      
+
       <div class="flex items-center gap-3">
-        <span class="text-lg text-gray-700">現在の状態:</span>
-        <span class="px-4 py-1.5 rounded-full text-sm font-semibold <%= 
+        <span class="text-xs text-stone-500">現在の状態:</span>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold <%=
           case @video_generation.status
-          when 'created' then 'bg-blue-100 text-blue-800'
-          when 'ready' then 'bg-green-100 text-green-800'
-          when 'generating' then 'bg-amber-100 text-amber-800'
-          when 'generated' then 'bg-green-100 text-green-800'
-          when 'uploading' then 'bg-amber-100 text-amber-800'
-          when 'uploaded' then 'bg-green-100 text-green-800'
-          when 'failed' then 'bg-red-100 text-red-800'
+          when 'created'    then 'bg-blue-100 text-blue-800'
+          when 'ready'      then 'bg-green-100 text-green-800'
+          when 'generating' then 'bg-amber-100 text-amber-700'
+          when 'generated'  then 'bg-green-100 text-green-800'
+          when 'uploading'  then 'bg-amber-100 text-amber-700'
+          when 'uploaded'   then 'bg-green-100 text-green-800'
+          when 'failed'     then 'bg-red-100 text-red-700'
           end
         %>">
           <%= case @video_generation.status
-              when 'created' then '画像アップロード待ち'
-              when 'ready' then '生成準備完了'
+              when 'created'    then '画像アップロード待ち'
+              when 'ready'      then '生成準備完了'
               when 'generating' then '動画生成中...'
-              when 'generated' then '動画生成完了！'
-              when 'uploading' then 'YouTubeアップロード中...'
-              when 'uploaded' then 'YouTubeアップロード完了！'
-              when 'failed' then "失敗: #{@video_generation.error_message}"
+              when 'generated'  then '動画生成完了！'
+              when 'uploading'  then 'YouTubeアップロード中...'
+              when 'uploaded'   then 'YouTubeアップロード完了！'
+              when 'failed'     then "失敗: #{@video_generation.error_message}"
               end %>
         </span>
       </div>
 
       <% if @video_generation.generating? %>
-        <div class="bg-blue-50 border-l-4 border-blue-800 text-blue-800 p-4 rounded mt-4">
+        <div class="bg-blue-50 border-l-2 border-blue-400 text-blue-800 p-3 rounded-xl mt-4">
           <div class="flex items-center gap-2">
-            <span class="animate-spin inline-block w-5 h-5 border-2 border-blue-800 border-t-transparent rounded-full"></span>
-            <span>ミキシング処理中です。完了までしばらくお待ちください...</span>
+            <span class="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></span>
+            <span class="text-xs">動画を生成中です。完了までしばらくお待ちください...</span>
           </div>
         </div>
-        <script>
-          setTimeout(() => location.reload(), 5000);
-        </script>
+        <script>setTimeout(() => location.reload(), 5000);</script>
       <% elsif @video_generation.failed? %>
-        <div class="bg-red-50 border-l-4 border-red-800 text-red-800 p-4 rounded mt-4">
-          <p class="font-semibold">ミキシング処理に失敗しました</p>
+        <div class="bg-red-50 border-l-2 border-red-400 text-red-800 p-3 rounded-xl mt-4">
+          <p class="text-xs font-semibold">動画の生成に失敗しました</p>
           <% if @video_generation.error_message.present? %>
-            <p class="text-sm mt-2"><%= @video_generation.error_message %></p>
+            <p class="text-xs mt-1 text-red-700"><%= @video_generation.error_message %></p>
           <% end %>
         </div>
       <% end %>
     </div>
-    
+
     <!-- サムネイル画像アップロード -->
     <% unless @video_generation.generated? || @video_generation.uploaded? %>
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
           サムネイル画像
         </h2>
-        
+
         <% if @video_generation.thumbnail_image.attached? %>
-          <div class="mb-6 text-center">
-            <img src="<%= rails_blob_path(@video_generation.thumbnail_image) %>" 
-                 alt="Thumbnail" 
-                 class="max-w-md mx-auto rounded-lg shadow-lg">
+          <div class="mb-5 text-center">
+            <img src="<%= rails_blob_path(@video_generation.thumbnail_image) %>"
+                 alt="Thumbnail"
+                 class="max-w-xs mx-auto rounded-xl shadow-sm">
           </div>
         <% end %>
-        
+
         <%= form_with model: @video_generation, method: :patch do |f| %>
           <div class="mb-4">
-            <%= f.label :thumbnail_image, "画像を選択（推奨: 16:9の横長画像）", class: "block text-sm font-semibold text-green-800 mb-2" %>
-            <%= f.file_field :thumbnail_image, 
-                            accept: "image/*", 
-                            class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-800 focus:outline-none transition" %>
-            <p class="text-xs text-gray-500 mt-2">
-              JPG, PNG形式対応。動画のサムネイルとして使用されます。
-            </p>
+            <%= f.label :thumbnail_image, "画像を選択（推奨: 16:9の横長画像）", class: "block text-xs font-semibold text-green-900 tracking-wide mb-1.5" %>
+            <%= f.file_field :thumbnail_image,
+                accept: "image/*",
+                class: "w-full px-4 py-3 border border-stone-200 rounded-xl text-sm text-stone-600 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700/30 transition" %>
+            <p class="text-xs text-stone-400 mt-1.5">JPG, PNG形式対応。動画のサムネイルとして使用されます。</p>
           </div>
-          
-          <%= f.submit "画像をアップロード", 
-              class: "w-full py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg shadow-md transition duration-300" %>
+
+          <%= f.submit "画像をアップロード",
+              class: "w-full py-3 bg-green-900 hover:bg-green-800 text-amber-100 text-sm font-bold rounded-full shadow-sm tracking-wide transition duration-300 cursor-pointer" %>
         <% end %>
       </div>
     <% end %>
-    
+
     <!-- 動画生成ボタン -->
     <% if @video_generation.ready? %>
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
           動画を生成
         </h2>
-        <p class="text-gray-700 mb-6">
-          サムネイル画像と音声から動画を生成します。
-        </p>
-        
-        <%= button_to "動画を生成", 
-                      generate_video_generation_path(@video_generation), 
-                      method: :post, 
-                      class: "w-full py-4 bg-green-800 hover:bg-green-700 text-amber-300 font-bold text-lg rounded-lg shadow-lg transition duration-300",
-                      data: { confirm: "動画生成を開始しますか？" } %>
+        <p class="text-xs text-stone-500 mb-5">サムネイル画像と音声から動画を生成します。</p>
+
+        <%= button_to "動画を生成する",
+            generate_video_generation_path(@video_generation),
+            method: :post,
+            class: "w-full py-3 bg-green-900 hover:bg-green-800 text-amber-100 font-bold rounded-full shadow-sm text-sm tracking-wide transition duration-300",
+            data: { confirm: "動画生成を開始しますか？" } %>
       </div>
     <% end %>
-    
+
     <!-- 動画生成中 -->
     <% if @video_generation.generating? %>
-      <div class="bg-white rounded-lg shadow-xl p-8 mb-6 border-4 border-amber-500">
-        <div class="text-center">
-          <div class="flex flex-col items-center gap-4">
-            <span class="animate-spin inline-block w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full"></span>
-            
-            <div>
-              <h3 class="text-2xl font-bold text-gray-800">動画を生成中です</h3>
-              <p class="text-gray-600 mt-2">完了までしばらくお待ちください...</p>
-              <p class="text-sm text-gray-500 mt-1">このページは自動的に更新されます</p>
-            </div>
-            
-            <button onclick="location.reload()" 
-                    class="px-6 py-2 border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-semibold rounded-lg transition duration-300">
-              今すぐ更新
-            </button>
-          </div>
-        </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-amber-200 px-6 py-10 mb-4 text-center">
+        <span class="animate-spin inline-block w-10 h-10 border-2 border-green-800 border-t-transparent rounded-full mb-5"></span>
+        <h3 class="text-sm font-bold text-green-900 mb-1">動画を生成中です</h3>
+        <p class="text-xs text-stone-400 mb-4">完了までしばらくお待ちください。このページは自動的に更新されます。</p>
+        <button onclick="location.reload()"
+                class="px-5 py-2 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 text-xs font-semibold rounded-full transition duration-300">
+          今すぐ更新
+        </button>
       </div>
-      
-      <script>
-        setTimeout(() => location.reload(), 5000);
-      </script>
+      <script>setTimeout(() => location.reload(), 5000);</script>
     <% end %>
-    
+
     <!-- 生成された動画のプレビュー -->
     <% if @video_generation.generated? && @video_generation.generated_video.attached? %>
-      <div class="bg-green-50 border-l-4 border-green-800 text-green-800 p-4 rounded mb-6">
+      <div class="bg-green-50 border-l-2 border-green-600 text-green-800 p-3 rounded-xl mb-4">
         <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="font-semibold">動画の生成が完了しました！</span>
+          <span class="text-xs font-semibold">動画の生成が完了しました！</span>
         </div>
       </div>
-      
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
           生成された動画
         </h2>
-        
-        <video controls class="w-full rounded-lg shadow-lg mb-4">
+
+        <video controls class="w-full rounded-xl shadow-sm mb-4">
           <source src="<%= rails_blob_path(@video_generation.generated_video) %>" type="video/mp4">
         </video>
-        
+
         <div class="text-right">
-          <%= link_to "ダウンロード", 
-                      rails_blob_path(@video_generation.generated_video, disposition: "attachment"), 
-                      class: "inline-block px-6 py-2 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300" %>
+          <%= link_to "ダウンロード",
+              rails_blob_path(@video_generation.generated_video, disposition: "attachment"),
+              class: "inline-block px-5 py-1.5 bg-green-900 hover:bg-green-800 text-amber-100 text-xs font-semibold rounded-full shadow-sm transition duration-300" %>
         </div>
       </div>
     <% end %>
 
     <!-- YouTubeアップロードセクション -->
     <% if @video_generation.generated? && !@video_generation.uploaded_to_youtube? %>
-      
+
       <!-- 曲情報が未入力の場合 -->
       <% unless @video_generation.has_song_info? %>
-        <div class="bg-amber-50 border-l-4 border-amber-600 p-6 rounded mb-6">
+        <div class="bg-amber-50 border-l-2 border-amber-400 p-4 rounded-xl mb-4">
           <div class="flex items-start gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <div class="flex-1">
-              <h3 class="font-bold text-amber-800 mb-2">YouTubeアップロード前の確認</h3>
-              <p class="text-amber-700 mb-4">著作権保護のため、YouTubeにアップロードする前に楽曲情報の入力が必要です。</p>
-              <%= link_to edit_video_generation_path(@video_generation), 
-                  class: "inline-block px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-md transition duration-300" do %>
+            <div>
+              <h3 class="text-xs font-bold text-amber-800 mb-1">YouTubeアップロード前の確認</h3>
+              <p class="text-xs text-amber-700 mb-3">著作権保護のため、アップロード前に楽曲情報の入力が必要です。</p>
+              <%= link_to edit_video_generation_path(@video_generation),
+                  class: "inline-block px-5 py-2 bg-green-900 hover:bg-green-800 text-amber-100 text-xs font-semibold rounded-full shadow-sm transition duration-300" do %>
                 楽曲情報を入力する
               <% end %>
             </div>
           </div>
         </div>
       <% end %>
-      
+
       <!-- 曲情報が入力済みの場合 -->
       <% if @video_generation.has_song_info? %>
+
         <!-- YouTube説明文プレビュー -->
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-          <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+          <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
             YouTube説明文プレビュー
           </h2>
-          
-          <div class="bg-green-50 border-l-4 border-green-800 text-green-800 p-4 rounded mb-4">
+
+          <div class="bg-green-50 border-l-2 border-green-500 text-green-800 p-3 rounded-xl mb-4">
             <div class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>楽曲情報が入力されています</span>
+              <span class="text-xs">楽曲情報が入力されています</span>
             </div>
           </div>
-          
-          <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+
+          <div class="bg-stone-900 text-stone-100 p-4 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed mb-4">
             <pre><%= @video_generation.youtube_description %></pre>
           </div>
-          
-          <%= link_to "編集する", edit_video_generation_path(@video_generation), 
-              class: "inline-block mt-4 px-4 py-2 border-2 border-green-800 text-green-800 hover:bg-green-50 font-semibold rounded-lg transition duration-300" %>
+
+          <%= link_to "編集する", edit_video_generation_path(@video_generation),
+              class: "inline-block px-5 py-1.5 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 text-xs font-semibold rounded-full transition duration-300" %>
         </div>
-        
+
         <!-- YouTubeアップロード -->
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-          <h2 class="text-xl font-serif font-semibold text-green-800 mb-6 pb-3 border-b-2 border-amber-400">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+          <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-5 pb-3 border-b border-stone-100">
             YouTubeにアップロード
           </h2>
-          
+
           <!-- 確認チェックリスト -->
-          <div class="bg-gray-50 p-5 rounded-lg mb-6 border-l-4 border-amber-500">
-            <h3 class="font-bold text-gray-800 mb-3">アップロード前の確認</h3>
-            <div class="space-y-2">
+          <div class="bg-stone-50 rounded-xl border border-stone-100 p-4 mb-5">
+            <h3 class="text-xs font-bold text-stone-600 mb-3">アップロード前の確認</h3>
+            <div class="space-y-2.5">
               <label class="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" class="mt-1 w-5 h-5 text-green-800 border-gray-300 rounded focus:ring-green-800" id="check-song-info" />
-                <span class="text-gray-700">楽曲情報（曲名・アーティスト）を確認しました</span>
+                <input type="checkbox" class="mt-0.5 w-4 h-4 accent-green-800" id="check-song-info" />
+                <span class="text-xs text-stone-600">楽曲情報（曲名・アーティスト）を確認しました</span>
               </label>
               <label class="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" class="mt-1 w-5 h-5 text-green-800 border-gray-300 rounded focus:ring-green-800" id="check-copyright" />
-                <span class="text-gray-700">著作権表記が適切であることを確認しました</span>
+                <input type="checkbox" class="mt-0.5 w-4 h-4 accent-green-800" id="check-copyright" />
+                <span class="text-xs text-stone-600">著作権表記が適切であることを確認しました</span>
               </label>
               <label class="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" class="mt-1 w-5 h-5 text-green-800 border-gray-300 rounded focus:ring-green-800" id="check-content-id" />
-                <span class="text-gray-700">YouTube Content IDによる権利処理を理解しました</span>
+                <input type="checkbox" class="mt-0.5 w-4 h-4 accent-green-800" id="check-content-id" />
+                <span class="text-xs text-stone-600">YouTube Content IDによる権利処理を理解しました</span>
               </label>
             </div>
           </div>
-          
+
           <!-- アップロード先選択 -->
-          <div class="space-y-4 mb-6">
-            <!-- Mysicコミュニティチャンネル -->
-            <div class="border-2 border-green-800 rounded-lg p-4">
-              <label class="flex items-start gap-4 cursor-pointer">
-                <input type="radio" 
-                       name="upload_destination" 
-                       value="app_channel" 
-                       class="mt-1 w-5 h-5 text-green-800"
-                       id="app_channel"
-                       checked>
-                <div class="flex-1">
-                  <span class="font-bold text-green-800 block mb-1">Mysicコミュニティチャンネル</span>
-                  <p class="text-sm text-gray-600">
-                    Mysic専用チャンネルに動画をアップロードします。<br>
-                    他のユーザーと作品を共有できます。
-                  </p>
-                  <p class="text-xs text-amber-600 mt-2">
-                    ※ 1日のアップロード上限があります（先着順）
-                  </p>
+          <div class="space-y-3 mb-5">
+            <div class="border border-green-800/30 rounded-xl p-4">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name="upload_destination" value="app_channel" class="mt-0.5 w-4 h-4 accent-green-800" id="app_channel" checked>
+                <div>
+                  <span class="text-xs font-bold text-green-900 block mb-1">Mysicコミュニティチャンネル</span>
+                  <p class="text-xs text-stone-500">Mysic専用チャンネルに動画をアップロードします。他のユーザーと作品を共有できます。</p>
+                  <p class="text-xs text-amber-600 mt-1.5">※ 1日のアップロード上限があります（先着順）</p>
                 </div>
               </label>
             </div>
-            
-            <!-- 自分のYouTubeチャンネル -->
-            <div class="border border-gray-200 rounded-lg p-4 <%= @can_upload_to_user_channel ? '' : 'opacity-60' %>">
-              <label class="flex items-start gap-4 cursor-pointer">
-                <input type="radio" 
-                       name="upload_destination" 
-                       value="user_channel" 
-                       class="mt-1 w-5 h-5 text-green-800"
-                       id="user_channel"
-                       <%= 'disabled' unless @can_upload_to_user_channel %>>
-                <div class="flex-1">
-                  <span class="font-bold text-gray-800 block mb-1">自分のYouTubeチャンネル</span>
-                  <p class="text-sm text-gray-600 mb-2">
-                    あなた自身のチャンネルに動画をアップロードします。<br>
-                    動画の所有権はあなたにあり、自由に編集・削除できます。
-                  </p>
-                  
+
+            <div class="border border-stone-200 rounded-xl p-4 <%= @can_upload_to_user_channel ? '' : 'opacity-60' %>">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name="upload_destination" value="user_channel" class="mt-0.5 w-4 h-4 accent-green-800" id="user_channel" <%= 'disabled' unless @can_upload_to_user_channel %>>
+                <div>
+                  <span class="text-xs font-bold text-stone-700 block mb-1">自分のYouTubeチャンネル</span>
+                  <p class="text-xs text-stone-500 mb-2">あなた自身のチャンネルに動画をアップロードします。動画の所有権はあなたにあり、自由に編集・削除できます。</p>
                   <% unless @can_upload_to_user_channel %>
-                    <%= link_to "YouTube認証", youtube_auth_path, 
-                        class: "inline-block px-4 py-2 bg-green-800 hover:bg-green-700 text-amber-300 text-sm font-semibold rounded shadow-md transition" %>
+                    <%= link_to "YouTube認証", youtube_auth_path,
+                        class: "inline-block px-4 py-1.5 bg-green-900 hover:bg-green-800 text-amber-100 text-xs font-semibold rounded-full shadow-sm transition" %>
                   <% end %>
                 </div>
               </label>
             </div>
           </div>
-          
-          <%= form_with url: upload_to_youtube_video_generation_path(@video_generation), 
-                        method: :post,
-                        local: true,
-                        id: "youtube-upload-form" do |f| %>
+
+          <%= form_with url: upload_to_youtube_video_generation_path(@video_generation),
+              method: :post, local: true, id: "youtube-upload-form" do |f| %>
             <%= f.hidden_field :destination, value: 'app_channel', id: 'destination_field' %>
-            
-            <%= f.submit "YouTubeにアップロード", 
-              class: "w-full py-4 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold text-lg rounded-lg shadow-md transition duration-300",
-              id: "youtube-upload-btn",
-              disabled: true,
-              data: { 
-                confirm: "YouTubeにアップロードしますか？\n\n楽曲情報と著作権表記を確認してください。",
-                disable_with: "アップロード中... しばらくお待ちください"
-              } %>
+
+            <%= f.submit "YouTubeにアップロード",
+                class: "w-full py-3 bg-green-900 hover:bg-green-800 text-amber-100 font-bold rounded-full text-sm shadow-sm tracking-wide transition duration-300 cursor-pointer",
+                id: "youtube-upload-btn",
+                disabled: true,
+                data: {
+                  confirm: "YouTubeにアップロードしますか？\n\n楽曲情報と著作権表記を確認してください。",
+                  disable_with: "アップロード中... しばらくお待ちください"
+                } %>
           <% end %>
         </div>
-        
+
         <script>
           const checkboxes = document.querySelectorAll('#check-song-info, #check-copyright, #check-content-id');
           const uploadBtn = document.getElementById('youtube-upload-btn');
-          
           function updateButtonState() {
-            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            uploadBtn.disabled = !allChecked;
+            uploadBtn.disabled = !Array.from(checkboxes).every(cb => cb.checked);
           }
-          
-          checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateButtonState);
-          });
-          
+          checkboxes.forEach(cb => cb.addEventListener('change', updateButtonState));
           document.querySelectorAll('input[name="upload_destination"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
               document.getElementById('destination_field').value = e.target.value;
@@ -325,89 +279,78 @@
         </script>
       <% end %>
     <% end %>
-    
+
     <!-- YouTubeアップロード中 -->
     <% if @video_generation.uploading? %>
-      <div class="bg-white rounded-lg shadow-xl p-8 mb-6 border-4 border-amber-500">
-        <div class="text-center">
-          <div class="flex flex-col items-center gap-4">
-            <span class="animate-spin inline-block w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full"></span>
-            
-            <div>
-              <h3 class="text-2xl font-bold text-gray-800">YouTubeにアップロード中...</h3>
-              <p class="text-gray-600 mt-2">完了までしばらくお待ちください</p>
-              <p class="text-sm text-gray-500 mt-1">このページは自動的に更新されます</p>
-            </div>
-            
-            <button onclick="location.reload()" 
-                    class="px-6 py-2 border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-semibold rounded-lg transition duration-300">
-              今すぐ更新
-            </button>
-          </div>
-        </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-amber-200 px-6 py-10 mb-4 text-center">
+        <span class="animate-spin inline-block w-10 h-10 border-2 border-green-800 border-t-transparent rounded-full mb-5"></span>
+        <h3 class="text-sm font-bold text-green-900 mb-1">YouTubeにアップロード中...</h3>
+        <p class="text-xs text-stone-400 mb-4">完了までしばらくお待ちください。このページは自動的に更新されます。</p>
+        <button onclick="location.reload()"
+                class="px-5 py-2 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 text-xs font-semibold rounded-full transition duration-300">
+          今すぐ更新
+        </button>
       </div>
-      
-      <script>
-        setTimeout(() => location.reload(), 5000);
-      </script>
+      <script>setTimeout(() => location.reload(), 5000);</script>
     <% end %>
-    
+
     <!-- YouTubeアップロード完了 -->
     <% if @video_generation.uploaded? && @video_generation.youtube_video_id.present? %>
-      <div class="bg-green-50 border-l-4 border-green-800 text-green-800 p-4 rounded mb-6">
+      <div class="bg-green-50 border-l-2 border-green-600 text-green-800 p-3 rounded-xl mb-4">
         <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="font-semibold">YouTubeへのアップロードが完了しました！</span>
+          <span class="text-xs font-semibold">YouTubeへのアップロードが完了しました！</span>
         </div>
       </div>
-      
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
           YouTube動画
         </h2>
-        
+
         <div class="aspect-video mb-4">
-          <iframe 
-            width="100%" 
-            height="100%" 
-            src="https://www.youtube.com/embed/<%= @video_generation.youtube_video_id %>" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          <iframe
+            width="100%"
+            height="100%"
+            src="https://www.youtube.com/embed/<%= @video_generation.youtube_video_id %>"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
-            class="rounded-lg shadow-lg">
+            class="rounded-xl shadow-sm">
           </iframe>
         </div>
-        
+
         <div class="text-right">
-          <%= link_to @video_generation.youtube_url, 
-                      target: "_blank", 
-                      class: "inline-block px-6 py-2 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300" do %>
+          <%= link_to @video_generation.youtube_url,
+              target: "_blank",
+              class: "inline-block px-5 py-1.5 bg-green-900 hover:bg-green-800 text-amber-100 text-xs font-semibold rounded-full shadow-sm transition duration-300" do %>
             YouTubeで見る
           <% end %>
         </div>
       </div>
     <% end %>
-    
-    <!-- 削除ボタン -->
-    <div class="flex gap-4 mb-6">
-      <%= link_to "← 動画一覧に戻る", video_generations_path, 
-          class: "px-6 py-2 text-gray-600 hover:text-gray-800 font-semibold hover:underline transition" %>
-      
-      <%= button_to "プロジェクトを削除", 
-                    video_generation_path(@video_generation), 
-                    method: :delete, 
-                    class: "px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition duration-300",
-                    data: { confirm: "本当に削除しますか？" } %>
+
+    <!-- 下部ナビ -->
+    <div class="flex items-center justify-between mb-6">
+      <%= link_to "← 動画一覧に戻る", video_generations_path,
+          class: "text-sm text-stone-400 hover:text-stone-600 underline underline-offset-2 transition" %>
+
+      <%= button_to "この動画を削除",
+          video_generation_path(@video_generation),
+          method: :delete,
+          class: "px-5 py-2 bg-red-700/80 hover:bg-red-700 text-white text-xs font-semibold rounded-full shadow-sm transition duration-300",
+          data: { confirm: "本当に削除しますか？" } %>
     </div>
-    
+
     <!-- ホームへ戻る -->
-    <div class="text-center py-8">
-      <%= link_to root_path, 
-          class: "inline-block px-8 py-3 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300" do %>
-        ♪ ホームへ戻る
+    <div class="text-center">
+      <%= link_to root_path,
+          class: "inline-block px-6 py-2.5 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 font-semibold rounded-full text-sm transition duration-300" do %>
+        ホームへ戻る
       <% end %>
     </div>
+
   </div>
 </div>

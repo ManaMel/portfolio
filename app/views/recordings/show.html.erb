@@ -7,45 +7,45 @@
   initial_vocal_gain = @recording.vocal_gain.presence || 0.5
 %>
 
-<div class="min-h-screen bg-gray-100">
-  <div class="max-w-3xl mx-auto px-4 py-8">
+<div class="min-h-screen bg-stone-50">
+  <div class="max-w-2xl mx-auto px-5 py-10">
 
-    <!-- タイトル -->
+    <!-- ページタイトル -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-serif font-bold text-green-800 mb-2">
+      <p class="text-green-800/50 text-xs font-medium tracking-widest uppercase mb-2">Timing Adjust</p>
+      <h2 class="text-2xl font-serif font-bold text-green-900 border-b border-amber-300/60 pb-3 inline-block px-6">
         <%= @recording.title %>
-      </h1>
-      <div class="w-16 h-1 bg-amber-400 mx-auto"></div>
+      </h2>
     </div>
 
     <!-- エラー：音声ファイルが見つからない場合 -->
     <% if original_audio_url.nil? || accomp_audio_url.nil? %>
-      <div class="bg-red-100 border-l-4 border-red-800 text-red-800 p-4 rounded mb-6">
+      <div class="bg-red-50 border-l-2 border-red-500 text-red-800 text-sm p-3 rounded-xl mb-5">
         <p>必要な音声ファイルが見つかりません。オリジナル録音または伴奏ファイルを確認してください。</p>
       </div>
-      <%= link_to mypage_path, 
-          class: "inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-green-900 font-semibold rounded-lg shadow-md transition duration-300" do %>
+      <%= link_to mypage_path,
+          class: "inline-block px-6 py-2.5 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 font-semibold rounded-full text-sm transition duration-300" do %>
         マイページに戻る
       <% end %>
       <% return %>
     <% end %>
 
-    <!-- ステータス表示 -->
-    <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-      <h2 class="text-xl font-serif font-semibold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+    <!-- ステータス -->
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+      <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
         ステータス
       </h2>
       <div class="flex items-center gap-3">
-        <span class="text-lg text-gray-700">現在の状態:</span>
-        <span class="px-4 py-1.5 rounded-full text-sm font-semibold <%= 
+        <span class="text-xs text-stone-500">現在の状態:</span>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold <%=
           case @recording.status.to_sym
           when :created then 'bg-blue-100 text-blue-800'
-          when :generating then 'bg-amber-100 text-amber-800'
+          when :generating then 'bg-amber-100 text-amber-700'
           when :generated then 'bg-green-100 text-green-800'
-          when :failed then 'bg-red-100 text-red-800'
+          when :failed then 'bg-red-100 text-red-700'
           end
         %>">
-          <%= 
+          <%=
             case @recording.status.to_sym
             when :created then '作成済み'
             when :generating then '処理中'
@@ -57,20 +57,18 @@
       </div>
 
       <% if @recording.generating? %>
-        <div class="bg-blue-50 border-l-4 border-blue-800 text-blue-800 p-4 rounded mt-4">
+        <div class="bg-blue-50 border-l-2 border-blue-400 text-blue-800 p-3 rounded-xl mt-4">
           <div class="flex items-center gap-2">
-            <span class="animate-spin inline-block w-5 h-5 border-2 border-blue-800 border-t-transparent rounded-full"></span>
-            <span>ミキシング処理中です。完了までしばらくお待ちください...</span>
+            <span class="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></span>
+            <span class="text-xs">ミキシング処理中です。完了までしばらくお待ちください...</span>
           </div>
         </div>
-        <script>
-          setTimeout(() => location.reload(), 5000);
-        </script>
+        <script>setTimeout(() => location.reload(), 5000);</script>
       <% elsif @recording.failed? %>
-        <div class="bg-red-50 border-l-4 border-red-800 text-red-800 p-4 rounded mt-4">
-          <p class="font-semibold">ミキシング処理に失敗しました</p>
+        <div class="bg-red-50 border-l-2 border-red-400 text-red-800 p-3 rounded-xl mt-4">
+          <p class="text-xs font-semibold">ミキシング処理に失敗しました</p>
           <% if @recording.error_message.present? %>
-            <p class="text-sm mt-2"><%= @recording.error_message %></p>
+            <p class="text-xs mt-1 text-red-700"><%= @recording.error_message %></p>
           <% end %>
         </div>
       <% end %>
@@ -78,23 +76,21 @@
 
     <!-- ミキシング完了時：結果の再生 -->
     <% if @recording.generated? && @recording.generated_audio.attached? %>
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-2xl font-serif font-bold text-green-800 mb-4 pb-3 border-b-2 border-amber-400">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-4 pb-3 border-b border-stone-100">
           ミキシング完了！
         </h2>
-        <p class="text-gray-700 mb-6">録音と伴奏がミキシングされました。</p>
-        
-        <div class="bg-gray-50 p-6 rounded-lg border-l-4 border-green-800">
-          <h3 class="font-semibold text-green-800 mb-3">ミキシング結果</h3>
-          <audio controls class="w-full mb-4" preload="metadata">
+        <p class="text-xs text-stone-500 mb-4">録音と伴奏がミキシングされました。</p>
+
+        <div class="bg-stone-50 rounded-xl border border-stone-100 p-4">
+          <p class="text-xs font-semibold text-green-900 mb-3">ミキシング結果</p>
+          <audio controls class="w-full mb-3" preload="metadata" style="height: 36px;">
             <source src="<%= url_for(@recording.generated_audio) %>" type="audio/mpeg">
-            お使いのブラウザは音声再生に対応していません。
           </audio>
-          
           <div class="text-right">
-            <%= link_to "ダウンロード", 
-                rails_blob_path(@recording.generated_audio, disposition: "attachment"), 
-                class: "inline-block px-6 py-2 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300" %>
+            <%= link_to "ダウンロード",
+                rails_blob_path(@recording.generated_audio, disposition: "attachment"),
+                class: "inline-block px-5 py-1.5 bg-green-900 hover:bg-green-800 text-amber-100 text-xs font-semibold rounded-full shadow-sm transition duration-300" %>
           </div>
         </div>
       </div>
@@ -102,23 +98,23 @@
 
     <!-- 調整とプレビュー -->
     <% unless @recording.generated_audio.attached? %>
-      <div 
+      <div
         data-timing-adjuster
         data-original-url="<%= original_audio_url %>"
         data-accomp-url="<%= accomp_audio_url %>"
         data-initial-delay="<%= initial_delay_seconds %>"
         data-initial-gain="<%= initial_vocal_gain %>"
       ></div>
-      
-      <div class="bg-white rounded-lg shadow-xl p-6 mb-6 border-t-4 border-green-800">
-        <h2 class="text-2xl font-serif font-bold text-green-800 mb-6 pb-3 border-b-2 border-amber-400">
+
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 px-6 py-6 mb-4">
+        <h2 class="text-sm font-semibold text-green-900 tracking-wide mb-5 pb-3 border-b border-stone-100">
           調整とプレビュー
         </h2>
-        
+
         <!-- プレビュー再生ボタン -->
-        <div class="mb-8">
-          <button type="button" id="playPreviewButton" 
-                  class="w-full py-3 px-4 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300 disabled:bg-gray-400 disabled:text-gray-200" 
+        <div class="mb-6">
+          <button type="button" id="playPreviewButton"
+                  class="w-full py-3 px-4 bg-green-900 hover:bg-green-800 text-amber-100 font-semibold rounded-full text-sm shadow-sm transition duration-300 disabled:bg-stone-300 disabled:text-stone-400"
                   disabled>
             <span id="playButtonText">音声ファイルを読み込み中...</span>
           </button>
@@ -132,74 +128,69 @@
 
           <!-- ディレイ調整 -->
           <div class="mb-6">
-            <label for="delay-slider" class="block text-sm font-semibold text-green-800 mb-2">
-              ディレイ (時間調整): <span id="delay-value" class="text-amber-600">
-                <%= '%.2f' % initial_delay_seconds %>
-              </span> 秒
+            <label for="delay-slider" class="block text-xs font-semibold text-green-900 tracking-wide mb-1.5">
+              ディレイ（時間調整）: <span id="delay-value" class="text-green-700"><%= '%.2f' % initial_delay_seconds %></span> 秒
             </label>
-            
-            <input type="range" 
-                  id="delay-slider"
-                  min="-5" 
-                  max="5" 
-                  step="0.05" 
-                  value="<%= initial_delay_seconds %>" 
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-            <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span>-5秒 (早く開始)</span>
-              <span>+5秒 (遅く開始)</span>
+            <input type="range"
+                   id="delay-slider"
+                   min="-5"
+                   max="5"
+                   step="0.05"
+                   value="<%= initial_delay_seconds %>"
+                   class="w-full h-1.5 bg-stone-200 rounded-full appearance-none cursor-pointer accent-green-800">
+            <div class="flex justify-between text-xs text-stone-400 mt-1.5">
+              <span>-5秒（早く開始）</span>
+              <span>+5秒（遅く開始）</span>
             </div>
           </div>
 
           <!-- ボーカル音量調整 -->
-          <div class="mb-8">
-            <label for="gain-slider" class="block text-sm font-semibold text-green-800 mb-2">
-              ボーカル音量比率: <span id="gain-value" class="text-amber-600">
-                <%= '%.2f' % initial_vocal_gain %>
-              </span>
+          <div class="mb-6">
+            <label for="gain-slider" class="block text-xs font-semibold text-green-900 tracking-wide mb-1.5">
+              ボーカル音量比率: <span id="gain-value" class="text-green-700"><%= '%.2f' % initial_vocal_gain %></span>
             </label>
-            
-            <input type="range" 
-                  id="gain-slider"
-                  min="0.0" 
-                  max="1.0" 
-                  step="0.01" 
-                  value="<%= initial_vocal_gain %>" 
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-            <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0.0 (無音)</span>
-              <span>1.0 (最大)</span>
+            <input type="range"
+                   id="gain-slider"
+                   min="0.0"
+                   max="1.0"
+                   step="0.01"
+                   value="<%= initial_vocal_gain %>"
+                   class="w-full h-1.5 bg-stone-200 rounded-full appearance-none cursor-pointer accent-green-800">
+            <div class="flex justify-between text-xs text-stone-400 mt-1.5">
+              <span>0.0（無音）</span>
+              <span>1.0（最大）</span>
             </div>
-            <p class="text-xs text-gray-500 mt-2">※ 伴奏の音量は自動的に (1 - この値) で調整されます</p>
+            <p class="text-xs text-stone-400 mt-2">※ 伴奏の音量は自動的に (1 - この値) で調整されます</p>
+          </div>
+
+          <!-- デバッグ情報 -->
+          <div class="text-xs text-stone-400 p-3 bg-stone-50 rounded-xl border border-stone-100 mb-5">
+            <p class="font-semibold text-stone-500 mb-1">現在の調整値</p>
+            <p>Delay: <span id="current-delay-debug"><%= initial_delay_seconds %></span> 秒</p>
+            <p>Gain: <span id="current-gain-debug"><%= initial_vocal_gain %></span></p>
           </div>
 
           <!-- ミキシング実行ボタン -->
-          <%= f.submit '調整値を保存してミキシング開始', 
-                      class: "w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-green-900 font-bold rounded-lg shadow-md transition duration-300", 
-                      data: { disable_with: "ミキシング処理中..." },
-                      id: "submit-mix-button" %>
-          
-          <!-- デバッグ情報 -->
-          <div class="text-xs text-gray-500 p-3 bg-gray-50 rounded mt-4">
-            <p class="font-semibold mb-1">現在の調整値:</p>
-            <p>Delay: <span id="current-delay-debug"><%= initial_delay_seconds %></span>秒</p>
-            <p>Gain: <span id="current-gain-debug"><%= initial_vocal_gain %></span></p>
-          </div>
+          <%= f.submit '調整値を保存してミキシング開始',
+              class: "w-full py-3 px-4 bg-green-900 hover:bg-green-800 text-amber-100 font-bold rounded-full text-sm shadow-sm tracking-wide transition duration-300 cursor-pointer",
+              data: { disable_with: "ミキシング処理中..." },
+              id: "submit-mix-button" %>
 
         <% end %>
       </div>
     <% end %>
-    
-    <!-- ホームへ戻る -->
-    <div class="text-center py-8">
-      <%= link_to root_path, 
-          class: "inline-block px-8 py-3 bg-green-800 hover:bg-green-700 text-amber-300 font-semibold rounded-lg shadow-md transition duration-300 mr-4" do %>
-        ♪ ホームへ戻る
+
+    <!-- フッターナビ -->
+    <div class="flex justify-center gap-3">
+      <%= link_to root_path,
+          class: "px-6 py-2.5 bg-green-900 hover:bg-green-800 text-amber-100 font-semibold rounded-full text-sm shadow-sm transition duration-300" do %>
+        ホームへ戻る
       <% end %>
-      <%= link_to mypage_path, 
-          class: "inline-block px-8 py-3 border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-semibold rounded-lg transition duration-300" do %>
+      <%= link_to mypage_path,
+          class: "px-6 py-2.5 border border-green-800/40 hover:bg-green-900 text-green-900 hover:text-amber-100 font-semibold rounded-full text-sm transition duration-300" do %>
         マイページに戻る
       <% end %>
     </div>
+
   </div>
 </div>
