@@ -234,6 +234,7 @@
               </label>
             </div>
 
+            <!-- 個人チャンネルの選択（実装が進み次第コメント解除
             <div class="border border-stone-200 rounded-xl p-4 <%= @can_upload_to_user_channel ? '' : 'opacity-60' %>">
               <label class="flex items-start gap-3 cursor-pointer">
                 <input type="radio" name="upload_destination" value="user_channel" class="mt-0.5 w-4 h-4 accent-green-800" id="user_channel" <%= 'disabled' unless @can_upload_to_user_channel %>>
@@ -246,7 +247,7 @@
                   <% end %>
                 </div>
               </label>
-            </div>
+            </div> -->
           </div>
 
           <%= form_with url: upload_to_youtube_video_generation_path(@video_generation),
