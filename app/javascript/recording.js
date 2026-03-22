@@ -241,7 +241,7 @@ document.addEventListener("turbo:load", async function recording() {
       param?.setValueAtTime(0, audioContext.currentTime);
 
       if (buffers.length === 0) {
-        alert("録音データがありません");
+        showFlash("録音データがありません");
         return;
       }
 
@@ -266,11 +266,48 @@ document.addEventListener("turbo:load", async function recording() {
     buttonPlay.addEventListener('click', () => playProcessedAudio());
 
     // ============================================================
+    // === フラッシュメッセージ（追加） ===
+    // ============================================================
+    function showFlash(message, type = 'notice') {
+    // 既存のフラッシュがあれば削除（重複防止）
+    document.querySelectorAll('.js-flash').forEach(el => el.remove());
+
+    // メッセージ要素を生成
+    const flash = document.createElement('div');
+    flash.className = `js-flash flash flash--${type}`;
+    flash.textContent = message;
+
+    // スタイル（Railsのflashと合わせたいならCSSに移してもOK）
+    Object.assign(flash.style, {
+      position: 'fixed',
+      top: '1.5rem',
+      right: '1.5rem',
+      zIndex: 9999,
+      padding: '0.75rem 1.25rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+      color: '#fff',
+      background: type === 'notice' ? '#3b82f6' : '#ef4444', // 青:成功 / 赤:エラー
+      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+      opacity: '1',
+      transition: 'opacity 0.4s ease',
+    });
+
+    document.body.appendChild(flash);
+
+    // 3秒後にフェードアウトして削除
+    setTimeout(() => {
+      flash.style.opacity = '0';
+      flash.addEventListener('transitionend', () => flash.remove());
+    }, 3000);
+    }
+
+    // ============================================================
     // === 保存ボタンの処理 ===
     // ============================================================
     buttonSave.addEventListener('click', async () => {
       if (!window.latestRecordingBlob) {
-        alert('保存する録音データがありません。先に録音を停止してください。');
+        showFlash('保存する録音データがありません。先に録音を停止してください。');
         return;
       }
 
@@ -279,7 +316,7 @@ document.addEventListener("turbo:load", async function recording() {
       const title = titleInput ? titleInput.value.trim() : '';
 
       if (!title) {
-        alert('録音のタイトルを入力してください。');
+        showFlash('録音のタイトルを入力してください。');
         return;
       }
 
@@ -316,16 +353,16 @@ document.addEventListener("turbo:load", async function recording() {
 
         // 成功時はリダイレクト
         if (result.redirect_url) {
-          alert('録音が保存されました！リダイレクトします...');
-          window.location.href = result.redirect_url;
+          showFlash('録音が保存されました！マイページへ移動します...');
+          setTimeout(() => { window.location.href = result.redirect_url; }, 2000);
         } else {
-          alert('録音が保存されました！');
-          window.location.reload();
+          showFlash('録音が保存されました！');
+          setTimeout(() => { window.location.reload(); }, 2000);
         }
 
       } catch (error) {
         console.error('保存エラー:', error);
-        alert(`保存に失敗しました: ${error.message}`);
+        showFlash(`保存に失敗しました: ${error.message}`, 'alert'); 
         buttonSave.disabled = false;
         buttonSave.textContent = '保存する';
       }
