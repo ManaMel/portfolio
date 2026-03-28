@@ -23,7 +23,7 @@ class AudioMixingJob < ApplicationJob
         raise "必要なファイルが揃っていません"
       end
 
-      original_path = download_to_temp(recording.original_audio, "original_#{recording.id}.wav")
+      original_path = download_to_temp(recording.original_audio, "original_#{recording.id}")
       accompaniment_path = download_to_temp(recording.accompaniment, "accompaniment_#{recording.id}")
       output_path = Rails.root.join("tmp", "mixed_#{recording.id}.mp3").to_s
 
